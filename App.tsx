@@ -1,20 +1,30 @@
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-gesture-handler';
+import { FinanceProvider } from './src/context/FinanceContext';
+import { ConfigurationProvider } from './src/context/ConfigurationContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import AppNavigator from './src/navigation/AppNavigator';
+
+const AppContent = () => {
+  const { state } = useTheme();
+  
+  return (
+    <>
+      <AppNavigator />
+      <StatusBar style={state.isDark ? "light" : "dark"} backgroundColor={state.colors.headerBackground} />
+    </>
+  );
+};
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <ThemeProvider>
+      <FinanceProvider>
+        <ConfigurationProvider>
+          <AppContent />
+        </ConfigurationProvider>
+      </FinanceProvider>
+    </ThemeProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
