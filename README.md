@@ -1,7 +1,5 @@
 # 🚗 KLANS - Gestão Financeira para Motoristas
 
-![KLANS Logo](assets/icon.png)
-
 Uma aplicação completa para gestão financeira de motoristas de aplicativo, desenvolvida com React Native e Expo.
 
 ## 📱 Plataformas Suportadas
