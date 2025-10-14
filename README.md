@@ -201,18 +201,6 @@ expo build:android
 2. Execute o build de produção
 3. Baixe e envie para as stores
 
-## 🤝 Contribuição
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
 ## 📞 Suporte
 
 Para suporte e dúvidas:
@@ -220,24 +208,6 @@ Para suporte e dúvidas:
 - 🐛 Issues: [GitHub Issues](https://github.com/wheslley/oclandestino/issues)
 - 📖 Documentação: [Wiki do Projeto](https://github.com/wheslley/oclandestino/wiki)
 
-## 🎯 Roadmap
-
-### Próximas Funcionalidades
-- [ ] Sincronização com Google Drive
-- [ ] Integração com APIs de combustível
-- [ ] Relatórios fiscais automáticos
-- [ ] Modo offline completo
-- [ ] Widgets para tela inicial
-- [ ] Notificações push
-- [ ] Backup automático na nuvem
-
-### Melhorias Planejadas
-- [ ] Performance otimizada
-- [ ] Novos tipos de gráficos
-- [ ] Filtros avançados
-- [ ] Exportação em PDF
-- [ ] Integração com contadores de quilometragem
-
 ---
 
-**Desenvolvido com ❤️ para motoristas de aplicativo**
+**Desenvolvido com ❤️ para motoristas de aplicativos**
