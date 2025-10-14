@@ -45,10 +45,15 @@ export const getLocalIP = () => {
 // Função para testar a conectividade
 export const testConnection = async (baseUrl: string) => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`${baseUrl}/health`, {
       method: 'GET',
-      timeout: 5000,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
     console.error('Connection test failed:', error);

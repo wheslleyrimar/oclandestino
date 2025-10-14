@@ -1,65 +1,105 @@
-# KLANS - Gestão Financeira
+# 🚗 KLANS - Gestão Financeira para Motoristas
 
-Aplicativo de gestão financeira para motoristas de aplicativo, desenvolvido com Expo/React Native para funcionar em Web, Android e iOS.
+![KLANS Logo](assets/icon.png)
 
-## 🚀 Tecnologias
+Uma aplicação completa para gestão financeira de motoristas de aplicativo, desenvolvida com React Native e Expo.
 
-- **Expo** - Framework para desenvolvimento multiplataforma
-- **React Native** - Framework para desenvolvimento mobile
-- **TypeScript** - Linguagem de programação
-- **React Navigation** - Navegação entre telas
+## 📱 Plataformas Suportadas
+
+- **iOS** - Versão completa com todas as funcionalidades
+- **Android** - Versão completa com todas as funcionalidades  
+- **Web** - Versão experimental com funcionalidades básicas
+
+## ✨ Funcionalidades
+
+### 📊 Dashboard Inteligente
+- Métricas em tempo real
+- Gráficos de receitas e despesas
+- Indicadores de performance
+- Comparativos mensais
+
+### 💰 Controle Financeiro
+- Registro de receitas de corridas
+- Controle de despesas (combustível, manutenção, etc.)
+- Categorização automática
+- Relatórios detalhados
+
+### 🎯 Metas e Objetivos
+- Definição de metas mensais
+- Acompanhamento de progresso
+- Alertas de performance
+- Histórico de conquistas
+
+### 🌙 Interface Adaptável
+- Tema claro e escuro
+- Suporte a múltiplos idiomas (PT-BR, EN-US, ES-ES)
+- Interface responsiva
+- Experiência otimizada
+
+### 🔐 Autenticação e Segurança
+- Login seguro
+- Perfil do usuário
+- Sincronização de dados
+- Backup automático
+
+### 💎 Recursos Premium (iOS)
+- Exportação de dados
+- Métricas avançadas
+- Múltiplas metas
+- Sincronização na nuvem
+
+## 🛠️ Tecnologias Utilizadas
+
+- **React Native** - Framework principal
+- **Expo** - Plataforma de desenvolvimento
+- **TypeScript** - Tipagem estática
 - **NativeWind** - Estilização com Tailwind CSS
-- **React Context** - Gerenciamento de estado
+- **React Navigation** - Navegação entre telas
+- **AsyncStorage** - Armazenamento local
+- **Axios** - Requisições HTTP
+- **React Native Chart Kit** - Gráficos e visualizações
+- **React Native IAP** - Compras in-app (iOS)
 
-## 📱 Funcionalidades
+## 🚀 Como Executar
 
-- ✅ Registro de receitas por plataforma (Uber, 99, inDrive, etc.)
-- ✅ Controle de gastos por categoria
-- ✅ Dashboard com métricas detalhadas
-- ✅ Metas mensais com acompanhamento
-- ✅ Filtros avançados por período e categoria
-- ✅ Cálculos automáticos de lucro líquido
-- ✅ Métricas de performance (ganho por hora, por km, por corrida)
-- ✅ Interface responsiva para mobile e web
-- ✅ Modal de cadastro progressivo com 6 etapas
-- ✅ Sugestões clicáveis para preenchimento rápido
-- ✅ Navegação por etapas com indicadores de progresso
+### Pré-requisitos
+- Node.js 18+ 
+- npm ou yarn
+- Expo CLI
+- iOS Simulator (para iOS)
+- Android Studio (para Android)
 
-## 🛠️ Instalação
+### Instalação
 
-1. Clone o repositório:
+1. **Clone o repositório**
 ```bash
-git clone <url-do-repositorio>
-cd klans
+git clone https://github.com/wheslley/oclandestino.git
+cd oclandestino
 ```
 
-2. Instale as dependências:
+2. **Instale as dependências**
 ```bash
 npm install
 ```
 
-3. Configure os assets (ícones):
-   - Adicione os ícones necessários na pasta `assets/`
-   - Ícones necessários: icon.png, adaptive-icon.png, splash-icon.png, favicon.png
+3. **Execute a aplicação**
 
-## 🚀 Executando o Projeto
-
-### Web
-```bash
-npm run web
-```
-
-### Android
-```bash
-npm run android
-```
-
-### iOS
+Para iOS:
 ```bash
 npm run ios
 ```
 
-### Desenvolvimento
+Para Android:
+```bash
+npm run android
+```
+
+Para Web:
+```bash
+npm run web
+```
+
+Para desenvolvimento geral:
 ```bash
 npm start
 ```
@@ -69,76 +109,103 @@ npm start
 ```
 src/
 ├── components/          # Componentes reutilizáveis
-│   ├── CustomTabBar.tsx
+│   ├── CustomAlert.tsx
+│   ├── CustomConfirm.tsx
 │   ├── ExpenseForm.tsx
-│   ├── FilterBar.tsx
-│   ├── MetricsGrid.tsx
-│   ├── MonthlyGoalCard.tsx
-│   ├── NewEntryModal.tsx
-│   ├── PeriodTabs.tsx
 │   ├── RevenueForm.tsx
-│   ├── StatCard.tsx
-│   ├── TransactionCard.tsx
-│   └── WorkEntryModal.tsx
-├── screens/             # Telas principais
+│   └── ...
+├── context/             # Contextos React
+│   ├── AuthContext.tsx
+│   ├── FinanceContext.tsx
+│   ├── ThemeContext.tsx
+│   └── ...
+├── screens/             # Telas da aplicação
+│   ├── AuthScreen.tsx
 │   ├── DashboardScreen.tsx
-│   ├── OverviewScreen.tsx
-│   └── TransactionsScreen.tsx
+│   ├── TransactionsScreen.tsx
+│   └── ...
+├── services/            # Serviços e APIs
+│   ├── apiService.ts
+│   ├── authService.ts
+│   └── subscriptionService.ts
 ├── navigation/          # Configuração de navegação
 │   └── AppNavigator.tsx
-├── context/            # Gerenciamento de estado
-│   └── FinanceContext.tsx
 ├── types/              # Definições de tipos
 │   └── index.ts
-└── data/               # Dados mock
-    └── mockData.ts
+├── utils/              # Utilitários
+│   ├── confirmDialog.ts
+│   └── indicatorsCalculator.ts
+└── i18n/               # Internacionalização
+    ├── index.ts
+    └── locales/
+        ├── pt-BR.ts
+        ├── en-US.ts
+        └── es-ES.ts
 ```
 
-## 🎨 Design System
+## 🎨 Temas e Personalização
 
-O aplicativo utiliza um design system consistente com:
+A aplicação suporta múltiplos temas:
+- **Claro** - Interface tradicional
+- **Escuro** - Modo noturno
+- **Automático** - Segue as configurações do sistema
 
-- **Cores primárias**: Azul (#0ea5e9), Verde (#22c55e), Vermelho (#ef4444)
-- **Tipografia**: Sistema nativo com pesos variados
-- **Espaçamento**: Grid de 4px
-- **Bordas**: Raios arredondados de 8px, 12px, 16px
-- **Sombras**: Elevações sutis para hierarquia visual
+## 🌍 Internacionalização
 
-## 📊 Métricas Calculadas
+Suporte a múltiplos idiomas:
+- 🇧🇷 Português (Brasil)
+- 🇺🇸 Inglês (Estados Unidos)
+- 🇪🇸 Espanhol (Espanha)
 
-O aplicativo calcula automaticamente:
+## 📊 Funcionalidades por Plataforma
 
-- **Receita Total**: Soma de todas as receitas
-- **Gastos Totais**: Soma de todos os gastos
-- **Lucro Líquido**: Receita - Gastos
-- **Ganho por Hora**: Receita ÷ Horas trabalhadas
-- **Ganho por KM**: Receita ÷ Quilômetros rodados
-- **Ganho por Corrida**: Receita ÷ Número de corridas
-- **Dias Trabalhados**: Contagem de dias únicos com receitas
+| Funcionalidade | iOS | Android | Web |
+|---------------|-----|---------|-----|
+| Dashboard | ✅ | ✅ | ✅ |
+| Transações | ✅ | ✅ | ✅ |
+| Relatórios | ✅ | ✅ | ✅ |
+| Temas | ✅ | ✅ | ✅ |
+| Compras In-App | ✅ | ❌ | ❌ |
+| Exportação | ✅ | ❌ | ❌ |
 
 ## 🔧 Configuração de Desenvolvimento
 
-### Pré-requisitos
-
-- Node.js 18+
-- npm ou yarn
-- Expo CLI
-- Para desenvolvimento iOS: Xcode
-- Para desenvolvimento Android: Android Studio
-
 ### Variáveis de Ambiente
+Crie um arquivo `.env` na raiz do projeto:
+```env
+API_BASE_URL=https://api.klans.com
+API_KEY=your_api_key_here
+```
 
-Não há variáveis de ambiente necessárias para o funcionamento básico.
+### Configuração do Expo
+O arquivo `app.json` contém todas as configurações do Expo:
+- Bundle identifier
+- Permissões
+- Plugins
+- Configurações específicas por plataforma
 
-## 📱 Plataformas Suportadas
+## 📱 Build e Deploy
 
-- ✅ **Web**: Funciona em qualquer navegador moderno
-- ✅ **Android**: API 21+ (Android 5.0+)
-- ✅ **iOS**: iOS 11+
+### Build para Produção
+
+iOS:
+```bash
+expo build:ios
+```
+
+Android:
+```bash
+expo build:android
+```
+
+### Deploy para App Stores
+1. Configure as credenciais no Expo
+2. Execute o build de produção
+3. Baixe e envie para as stores
 
 ## 🤝 Contribuição
 
-1. Faça um fork do projeto
+1. Fork o projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
@@ -146,36 +213,33 @@ Não há variáveis de ambiente necessárias para o funcionamento básico.
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
-## 🆕 Funcionalidades Recentes
+## 📞 Suporte
 
-### Modal de Cadastro Progressivo
-- **6 etapas**: Receita Uber, Receita 99, Outros Apps, Quilometragem, Horas Trabalhadas, Combustível
-- **Navegação intuitiva**: Botões Avançar, Voltar e Pular
-- **Indicadores visuais**: Barra de progresso e círculos numerados
-- **Sugestões clicáveis**: Valores comuns para preenchimento rápido
-- **Interface responsiva**: Otimizada para dispositivos móveis
+Para suporte e dúvidas:
+- 📧 Email: suporte@klans.com
+- 🐛 Issues: [GitHub Issues](https://github.com/wheslley/oclandestino/issues)
+- 📖 Documentação: [Wiki do Projeto](https://github.com/wheslley/oclandestino/wiki)
 
-### Sugestões Inteligentes
-- **Valores de corrida**: Faixas de preço por tipo de corrida
-- **Distâncias comuns**: Jornadas típicas de trabalho
-- **Estimativas de combustível**: Cálculos baseados em consumo médio
-- **Jornadas padrão**: Horários comuns de trabalho
+## 🎯 Roadmap
 
-## 🐛 Problemas Conhecidos
-
-- Os ícones de assets precisam ser adicionados manualmente
-- Gráficos avançados podem ser implementados futuramente
-- Sincronização com nuvem não está implementada
-
-## 🚀 Próximas Funcionalidades
-
-- [ ] Backup automático na nuvem
-- [ ] Relatórios em PDF
+### Próximas Funcionalidades
+- [ ] Sincronização com Google Drive
+- [ ] Integração com APIs de combustível
+- [ ] Relatórios fiscais automáticos
+- [ ] Modo offline completo
+- [ ] Widgets para tela inicial
 - [ ] Notificações push
-- [ ] Modo escuro
-- [ ] Integração com APIs das plataformas
-- [ ] Gráficos interativos avançados
-- [ ] Validação de formulários
-- [ ] Histórico de sugestões personalizadas
+- [ ] Backup automático na nuvem
+
+### Melhorias Planejadas
+- [ ] Performance otimizada
+- [ ] Novos tipos de gráficos
+- [ ] Filtros avançados
+- [ ] Exportação em PDF
+- [ ] Integração com contadores de quilometragem
+
+---
+
+**Desenvolvido com ❤️ para motoristas de aplicativo**

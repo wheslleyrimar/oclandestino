@@ -124,10 +124,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ data, period
           chartConfig={chartConfig}
           style={styles.chart}
           showValuesOnTopOfBars
-          withInnerLines={false}
-          withOuterLines={false}
-          withVerticalLines={false}
-          withHorizontalLines={false}
+          yAxisLabel=""
+          yAxisSuffix=""
         />
       </View>
 

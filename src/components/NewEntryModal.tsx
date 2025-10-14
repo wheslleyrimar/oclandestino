@@ -7,11 +7,11 @@ import {
   TextInput,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService } from '../services/apiService';
 import { authService } from '../services/authService';
 import { Revenue, Expense } from '../types';

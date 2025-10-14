@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  SafeAreaView,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFinance } from '../context/FinanceContext';
 import { Platform } from '../types';
 

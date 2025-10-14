@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { WebCompatibleDateTimePicker } from './WebCompatibleDateTimePicker';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -474,7 +475,7 @@ export const DateFilterDropdown: React.FC = () => {
 
       {/* Date Pickers */}
       {showStartDatePicker && (
-        <DateTimePicker
+        <WebCompatibleDateTimePicker
           value={tempStartDate}
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
@@ -484,7 +485,7 @@ export const DateFilterDropdown: React.FC = () => {
       )}
 
       {showEndDatePicker && (
-        <DateTimePicker
+        <WebCompatibleDateTimePicker
           value={tempEndDate}
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}

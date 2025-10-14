@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
-  SafeAreaView,
   StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSubscription } from '../context/SubscriptionContext';
 import { PremiumButton, PremiumStatus, usePremiumFeatures } from '../components/PremiumButton';
 import { SubscriptionModal } from '../components/SubscriptionModal';

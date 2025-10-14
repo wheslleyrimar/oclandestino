@@ -169,10 +169,8 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data, period }) => {
           chartConfig={chartConfig}
           style={styles.chart}
           showValuesOnTopOfBars
-          withInnerLines={false}
-          withOuterLines={false}
-          withVerticalLines={false}
-          withHorizontalLines={false}
+          yAxisLabel="R$"
+          yAxisSuffix=""
         />
       </View>
 

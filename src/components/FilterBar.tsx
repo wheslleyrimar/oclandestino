@@ -6,8 +6,8 @@ import {
   StyleSheet,
   Modal,
   TextInput,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
 

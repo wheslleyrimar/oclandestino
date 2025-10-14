@@ -1,14 +1,28 @@
 import { Platform } from 'react-native';
 
-// Importações condicionais para evitar problemas na web
+// Importação condicional do react-native-iap apenas para plataformas móveis
 let iapModule: any = null;
-if (typeof window === 'undefined') {
-  // Apenas importar no mobile
-  try {
-    iapModule = require('react-native-iap');
-  } catch (error) {
+
+const initializeIAPModule = () => {
+  if (Platform.OS === 'web') {
+    return null;
   }
-}
+  
+  try {
+    return require('react-native-iap');
+  } catch (error) {
+    // Silently fail for web or when module is not available
+    return null;
+  }
+};
+
+// Initialize only when needed
+const getIAPModule = () => {
+  if (!iapModule) {
+    iapModule = initializeIAPModule();
+  }
+  return iapModule;
+};
 
 export interface SubscriptionProduct {
   productId: string;
@@ -40,11 +54,12 @@ class SubscriptionService {
 
   async initialize(): Promise<boolean> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (Platform.OS === 'web' || !module) {
         return false;
       }
 
-      const result = await iapModule.initConnection();
+      const result = await module.initConnection();
       
       // Configurar listeners para atualizações de compra
       this.setupPurchaseListeners();
@@ -57,15 +72,16 @@ class SubscriptionService {
   }
 
   private setupPurchaseListeners() {
-    if (!iapModule) return;
+    const module = getIAPModule();
+    if (!module) return;
     
     // Listener para atualizações de compra
-    this.purchaseUpdateSubscription = iapModule.purchaseUpdatedListener(
+    this.purchaseUpdateSubscription = module.purchaseUpdatedListener(
       async (purchase: any) => {
         
         try {
           // Finalizar a transação
-          await iapModule.finishTransaction({ purchase, isConsumable: false });
+          await module.finishTransaction({ purchase, isConsumable: false });
           
           // Aqui você pode adicionar lógica adicional como:
           // - Salvar no AsyncStorage
@@ -79,7 +95,7 @@ class SubscriptionService {
     );
 
     // Listener para erros de compra
-    this.purchaseErrorSubscription = iapModule.purchaseErrorListener(
+    this.purchaseErrorSubscription = module.purchaseErrorListener(
       (error: any) => {
         console.error('Purchase error:', error);
       }
@@ -88,11 +104,12 @@ class SubscriptionService {
 
   async getAvailableProducts(): Promise<SubscriptionProduct[]> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !module) {
         return [];
       }
 
-      const products = await iapModule.getProducts({ skus: this.productIds });
+      const products = await module.getProducts({ skus: this.productIds });
       return products.map((product: any) => ({
         productId: product.productId,
         price: product.price,
@@ -110,15 +127,16 @@ class SubscriptionService {
 
   async purchaseSubscription(productId: string): Promise<PurchaseResult | null> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !module) {
         throw new Error('In-App Purchases only available on iOS');
       }
 
-      const purchase = await iapModule.requestPurchase({ sku: productId });
+      const purchase = await module.requestPurchase({ sku: productId });
       
       if (purchase) {
         // Finalizar a transação
-        await iapModule.finishTransaction({ purchase, isConsumable: false });
+        await module.finishTransaction({ purchase, isConsumable: false });
         
         return {
           transactionId: purchase.transactionId,
@@ -138,11 +156,12 @@ class SubscriptionService {
 
   async restorePurchases(): Promise<PurchaseResult[]> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !module) {
         return [];
       }
 
-      const purchases = await iapModule.getAvailablePurchases();
+      const purchases = await module.getAvailablePurchases();
       return purchases.map((purchase: any) => ({
         transactionId: purchase.transactionId,
         productId: purchase.productId,
@@ -158,13 +177,14 @@ class SubscriptionService {
 
   async validateReceipt(receipt: string): Promise<boolean> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !module) {
         return false;
       }
 
       // Para produção, você deve validar o receipt no seu backend
       // Aqui estamos fazendo uma validação básica local
-      const result = await iapModule.validateReceiptIos({
+      const result = await module.validateReceiptIos({
         'receipt-data': receipt,
         password: 'YOUR_SHARED_SECRET' // Configure no App Store Connect
       }, false);
@@ -178,7 +198,8 @@ class SubscriptionService {
 
   async checkSubscriptionStatus(): Promise<boolean> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !module) {
         return false;
       }
 
@@ -215,11 +236,12 @@ class SubscriptionService {
   // Método para obter informações detalhadas de uma assinatura
   async getSubscriptionInfo(productId: string): Promise<any> {
     try {
-      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !iapModule) {
+      const module = getIAPModule();
+      if (typeof window !== 'undefined' || Platform.OS !== 'ios' || !module) {
         return null;
       }
 
-      const subscriptions = await iapModule.getSubscriptions({ skus: [productId] });
+      const subscriptions = await module.getSubscriptions({ skus: [productId] });
       return subscriptions.length > 0 ? subscriptions[0] : null;
     } catch (error) {
       console.error('Failed to get subscription info:', error);

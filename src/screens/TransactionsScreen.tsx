@@ -5,10 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
@@ -20,6 +20,7 @@ import { ExpenseForm } from '../components/ExpenseForm';
 import { WorkEntryModal } from '../components/WorkEntryModal';
 import NewEntryModal from '../components/NewEntryModal';
 import { EditTransactionModal } from '../components/EditTransactionModal';
+import { Revenue, Expense } from '../types';
 
 const TransactionsScreen: React.FC = () => {
   const { getFilteredRevenues, getFilteredExpenses, loadData } = useFinance();

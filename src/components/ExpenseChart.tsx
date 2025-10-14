@@ -103,10 +103,8 @@ export const ExpenseChart: React.FC<ExpenseChartProps> = ({ data, period }) => {
           chartConfig={chartConfig}
           style={styles.chart}
           showValuesOnTopOfBars
-          withInnerLines={false}
-          withOuterLines={false}
-          withVerticalLines={false}
-          withHorizontalLines={false}
+          yAxisLabel="R$"
+          yAxisSuffix=""
         />
       </View>
 

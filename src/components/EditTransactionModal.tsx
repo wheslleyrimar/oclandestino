@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { WebCompatibleDateTimePicker } from './WebCompatibleDateTimePicker';
 import { useTheme } from '../context/ThemeContext';
 import { Revenue, Expense } from '../types';
 import { apiService } from '../services/apiService';
@@ -248,7 +249,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
 
         {/* Date Picker */}
         {showDatePicker && (
-          <DateTimePicker
+          <WebCompatibleDateTimePicker
             value={formData.date}
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
