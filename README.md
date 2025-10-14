@@ -166,14 +166,6 @@ Suporte a múltiplos idiomas:
 | Compras In-App | ✅ | ❌ | ❌ |
 | Exportação | ✅ | ❌ | ❌ |
 
-## 🔧 Configuração de Desenvolvimento
-
-### Variáveis de Ambiente
-Crie um arquivo `.env` na raiz do projeto:
-```env
-API_BASE_URL=https://api.klans.com
-API_KEY=your_api_key_here
-```
 
 ### Configuração do Expo
 O arquivo `app.json` contém todas as configurações do Expo:
@@ -204,9 +196,7 @@ expo build:android
 ## 📞 Suporte
 
 Para suporte e dúvidas:
-- 📧 Email: suporte@klans.com
 - 🐛 Issues: [GitHub Issues](https://github.com/wheslley/oclandestino/issues)
-- 📖 Documentação: [Wiki do Projeto](https://github.com/wheslley/oclandestino/wiki)
 
 ---
 
