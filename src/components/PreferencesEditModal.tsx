@@ -6,13 +6,14 @@ import {
   Modal,
   StyleSheet,
   ScrollView,
-  Alert,
   Switch,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useConfiguration } from '../context/ConfigurationContext';
 import { useTheme } from '../context/ThemeContext';
 import { AppPreferences } from '../types';
+import { showConfirmDialog } from '../utils/confirmDialog';
 
 interface PreferencesEditModalProps {
   visible: boolean;
@@ -26,18 +27,51 @@ const PreferencesEditModal: React.FC<PreferencesEditModalProps> = ({ visible, on
 
   useEffect(() => {
     if (visible) {
-      setFormData(state.preferences);
+      // Garantir que as preferências tenham valores padrão se estiverem vazias
+      const preferences = state.preferences || {
+        id: '1',
+        language: 'pt-BR',
+        theme: 'system',
+        notifications: {
+          earnings: true,
+          goals: true,
+          reminders: true,
+          promotions: false,
+        },
+        currency: 'BRL',
+        dateFormat: 'DD/MM/YYYY',
+        timeFormat: '24h',
+      };
+      setFormData(preferences);
     }
   }, [visible, state.preferences]);
 
-  const handleSave = () => {
-    updatePreferences(formData);
-    // Update theme if changed
-    if (formData.theme && formData.theme !== themeState.theme) {
-      setTheme(formData.theme);
+  const handleSave = async () => {
+    try {
+      await updatePreferences(formData);
+      // Update theme if changed
+      if (formData.theme && formData.theme !== themeState.theme) {
+        setTheme(formData.theme);
+      }
+      onClose();
+      
+      // Usar o utilitário de confirmação multiplataforma
+      if (Platform.OS === 'web') {
+        alert('Preferências atualizadas com sucesso!');
+      } else {
+        // Para mobile, usar o Alert nativo
+        const { Alert } = require('react-native');
+        Alert.alert('Sucesso', 'Preferências atualizadas com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar preferências:', error);
+      if (Platform.OS === 'web') {
+        alert('Erro ao salvar preferências. Tente novamente.');
+      } else {
+        const { Alert } = require('react-native');
+        Alert.alert('Erro', 'Erro ao salvar preferências. Tente novamente.');
+      }
     }
-    onClose();
-    Alert.alert('Sucesso', 'Preferências atualizadas com sucesso!');
   };
 
   const handleCancel = () => {

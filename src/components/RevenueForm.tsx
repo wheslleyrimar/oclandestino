@@ -35,7 +35,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
 
   const platforms: Platform[] = ['Uber', '99', 'inDrive', 'Cabify', 'Outros'];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.value || !formData.description) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
@@ -47,29 +47,33 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       return;
     }
 
-    addRevenue({
-      value,
-      date: formData.date,
-      description: formData.description,
-      platform: formData.platform,
-      hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked.replace(',', '.')) : undefined,
-      kilometersRidden: formData.kilometersRidden ? parseFloat(formData.kilometersRidden.replace(',', '.')) : undefined,
-      tripsCount: formData.tripsCount ? parseInt(formData.tripsCount) : undefined,
-    });
+    try {
+      await addRevenue({
+        value,
+        date: formData.date,
+        description: formData.description,
+        platform: formData.platform,
+        hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked.replace(',', '.')) : undefined,
+        kilometersRidden: formData.kilometersRidden ? parseFloat(formData.kilometersRidden.replace(',', '.')) : undefined,
+        tripsCount: formData.tripsCount ? parseInt(formData.tripsCount) : undefined,
+      });
 
-    // Reset form
-    setFormData({
-      value: '',
-      date: new Date().toISOString().split('T')[0],
-      description: '',
-      platform: 'Uber',
-      hoursWorked: '',
-      kilometersRidden: '',
-      tripsCount: '',
-    });
+      // Reset form
+      setFormData({
+        value: '',
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        platform: 'Uber',
+        hoursWorked: '',
+        kilometersRidden: '',
+        tripsCount: '',
+      });
 
-    Alert.alert('Sucesso', 'Receita adicionada com sucesso!');
-    onClose();
+      Alert.alert('Sucesso', 'Receita adicionada com sucesso!');
+      onClose();
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao adicionar receita. Tente novamente.');
+    }
   };
 
   const renderForm = () => (

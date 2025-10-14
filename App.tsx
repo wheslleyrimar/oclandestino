@@ -1,8 +1,10 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
+import { AuthProvider } from './src/context/AuthContext';
 import { FinanceProvider } from './src/context/FinanceContext';
 import { ConfigurationProvider } from './src/context/ConfigurationContext';
+import { SubscriptionProvider } from './src/context/SubscriptionContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
@@ -20,11 +22,15 @@ const AppContent = () => {
 export default function App() {
   return (
     <ThemeProvider>
-      <FinanceProvider>
-        <ConfigurationProvider>
-          <AppContent />
-        </ConfigurationProvider>
-      </FinanceProvider>
+      <AuthProvider>
+        <FinanceProvider>
+          <ConfigurationProvider>
+            <SubscriptionProvider>
+              <AppContent />
+            </SubscriptionProvider>
+          </ConfigurationProvider>
+        </FinanceProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

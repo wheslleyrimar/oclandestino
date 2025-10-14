@@ -5,6 +5,17 @@ module.exports = function(api) {
     plugins: [
       'react-native-reanimated/plugin',
     ],
+    env: {
+      web: {
+        plugins: [
+          ['module-resolver', {
+            alias: {
+              'react-native': 'react-native-web',
+            },
+          }],
+        ],
+      },
+    },
   };
 };
 

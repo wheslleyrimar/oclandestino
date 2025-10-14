@@ -1,13 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { Revenue, Expense } from '../types';
 
 interface TransactionCardProps {
   transaction: (Revenue | Expense) & { type: 'revenue' | 'expense' };
+  onEdit?: (transaction: (Revenue | Expense) & { type: 'revenue' | 'expense' }) => void;
 }
 
-export const TransactionCard: React.FC<TransactionCardProps> = ({ transaction }) => {
+export const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, onEdit }) => {
   const { state: themeState } = useTheme();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -93,6 +95,16 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({ transaction })
           <Text style={styles.date}>{formatDate(transaction.date)}</Text>
         </View>
       </View>
+
+      {/* Edit Button */}
+      {onEdit && (
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => onEdit(transaction)}
+        >
+          <Ionicons name="pencil" size={14} color={themeState.colors.textSecondary} />
+        </TouchableOpacity>
+      )}
 
       {/* Additional info for revenues */}
       {transaction.type === 'revenue' && (
@@ -203,5 +215,26 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '500',
+  },
+  editButton: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

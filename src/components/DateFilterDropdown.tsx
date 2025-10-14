@@ -6,8 +6,12 @@ import {
   StyleSheet,
   TextInput,
   Modal,
+  Platform,
+  Dimensions,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFinance } from '../context/FinanceContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface DateRange {
   startDate: string;
@@ -22,9 +26,23 @@ interface PredefinedOption {
 
 export const DateFilterDropdown: React.FC = () => {
   const { state, setFilters } = useFinance();
+  const { state: themeState } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState(new Date());
+  const [tempEndDate, setTempEndDate] = useState(new Date());
+  const [isApplyingFilter, setIsApplyingFilter] = useState(false);
+
+  // Verificação de segurança para o tema
+  if (!themeState || !themeState.colors) {
+    return null;
+  }
+
+  const styles = createStyles(themeState.colors);
+  const screenWidth = Dimensions.get('window').width;
 
   const getToday = () => {
     const today = new Date();
@@ -39,10 +57,17 @@ export const DateFilterDropdown: React.FC = () => {
 
   const getThisWeek = () => {
     const today = new Date();
+    // Calcular início da semana (segunda-feira)
+    const dayOfWeek = today.getDay(); // 0 = domingo, 1 = segunda, etc.
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Se domingo, volta 6 dias; senão, volta (dayOfWeek - 1) dias
+    
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setDate(today.getDate() - daysFromMonday);
+    startOfWeek.setHours(0, 0, 0, 0); // Início do dia
+    
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999); // Final do dia
     
     return {
       startDate: startOfWeek.toISOString().split('T')[0],
@@ -52,10 +77,17 @@ export const DateFilterDropdown: React.FC = () => {
 
   const getLastWeek = () => {
     const today = new Date();
+    // Calcular início da semana passada (segunda-feira)
+    const dayOfWeek = today.getDay();
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
     const startOfLastWeek = new Date(today);
-    startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+    startOfLastWeek.setDate(today.getDate() - daysFromMonday - 7);
+    startOfLastWeek.setHours(0, 0, 0, 0);
+    
     const endOfLastWeek = new Date(startOfLastWeek);
     endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+    endOfLastWeek.setHours(23, 59, 59, 999);
     
     return {
       startDate: startOfLastWeek.toISOString().split('T')[0],
@@ -66,7 +98,10 @@ export const DateFilterDropdown: React.FC = () => {
   const getThisMonth = () => {
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
     
     return {
       startDate: startOfMonth.toISOString().split('T')[0],
@@ -77,7 +112,10 @@ export const DateFilterDropdown: React.FC = () => {
   const getLastMonth = () => {
     const today = new Date();
     const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    startOfLastMonth.setHours(0, 0, 0, 0);
+    
     const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    endOfLastMonth.setHours(23, 59, 59, 999);
     
     return {
       startDate: startOfLastMonth.toISOString().split('T')[0],
@@ -118,24 +156,133 @@ export const DateFilterDropdown: React.FC = () => {
     },
   ];
 
-  const handlePredefinedOption = (option: PredefinedOption) => {
-    const dates = option.getDates();
-    setFilters({
-      ...state.filters,
-      startDate: dates.startDate,
-      endDate: dates.endDate,
-    });
-    setIsOpen(false);
-  };
-
-  const handleCustomRange = () => {
-    if (customStartDate && customEndDate) {
+  const handlePredefinedOption = async (option: PredefinedOption) => {
+    setIsApplyingFilter(true);
+    try {
+      const dates = option.getDates();
       setFilters({
         ...state.filters,
-        startDate: customStartDate,
-        endDate: customEndDate,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
       });
       setIsOpen(false);
+    } finally {
+      setIsApplyingFilter(false);
+    }
+  };
+
+  const formatDateToISO = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatDateToDisplay = (date: Date): string => {
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const parseDisplayDate = (dateString: string): Date | null => {
+    if (!dateString) return null;
+    
+    // Tentar diferentes formatos de data
+    const formats = [
+      /^(\d{2})\/(\d{2})\/(\d{4})$/, // dd/mm/yyyy
+      /^(\d{4})-(\d{2})-(\d{2})$/, // yyyy-mm-dd
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // d/m/yyyy ou dd/m/yyyy ou d/mm/yyyy
+    ];
+    
+    for (const format of formats) {
+      const match = dateString.match(format);
+      if (match) {
+        const [, day, month, year] = match;
+        const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        
+        // Validar se a data é válida
+        if (
+          parsedDate.getFullYear() === parseInt(year) &&
+          parsedDate.getMonth() === parseInt(month) - 1 &&
+          parsedDate.getDate() === parseInt(day)
+        ) {
+          return parsedDate;
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const validateDateRange = (startDate: Date, endDate: Date): boolean => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // Final do dia atual
+    
+    // Verificar se as datas não são futuras
+    if (startDate > today || endDate > today) {
+      return false;
+    }
+    
+    // Verificar se a data inicial não é posterior à final
+    if (startDate > endDate) {
+      return false;
+    }
+    
+    // Verificar se o intervalo não é muito grande (máximo 1 ano)
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    
+    if (startDate < oneYearAgo) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      setTempStartDate(selectedDate);
+      setCustomStartDate(formatDateToDisplay(selectedDate));
+      
+      // Se a data final for anterior à inicial, ajustar automaticamente
+      if (selectedDate > tempEndDate) {
+        setTempEndDate(selectedDate);
+        setCustomEndDate(formatDateToDisplay(selectedDate));
+      }
+    }
+  };
+
+  const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      // Garantir que a data final não seja anterior à inicial
+      const finalDate = selectedDate < tempStartDate ? tempStartDate : selectedDate;
+      setTempEndDate(finalDate);
+      setCustomEndDate(formatDateToDisplay(finalDate));
+    }
+  };
+
+  const handleCustomRange = async () => {
+    if (customStartDate && customEndDate) {
+      setIsApplyingFilter(true);
+      try {
+        const startDate = parseDisplayDate(customStartDate);
+        const endDate = parseDisplayDate(customEndDate);
+        
+        if (startDate && endDate) {
+          if (validateDateRange(startDate, endDate)) {
+            setFilters({
+              ...state.filters,
+              startDate: formatDateToISO(startDate),
+              endDate: formatDateToISO(endDate),
+            });
+            setIsOpen(false);
+          } else {
+            // Mostrar erro de validação
+            alert('Intervalo de datas inválido. Verifique se:\n- As datas não são futuras\n- A data inicial não é posterior à final\n- O intervalo não excede 1 ano');
+          }
+        } else {
+          alert('Formato de data inválido. Use o formato dd/mm/aaaa');
+        }
+      } finally {
+        setIsApplyingFilter(false);
+      }
     }
   };
 
@@ -210,7 +357,7 @@ export const DateFilterDropdown: React.FC = () => {
           style={[styles.filterButton, hasActiveDateFilter && styles.filterButtonActive]}
           onPress={() => setIsOpen(true)}
         >
-          <Text style={styles.calendarIcon}>⚡</Text>
+          <Text style={styles.calendarIcon}>📅</Text>
           <Text 
             style={[styles.filterButtonText, hasActiveDateFilter && styles.filterButtonTextActive]}
             numberOfLines={1}
@@ -224,12 +371,12 @@ export const DateFilterDropdown: React.FC = () => {
         </TouchableOpacity>
         
         {hasActiveDateFilter && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearFilters}
-          >
-            <Text style={styles.clearButtonText}>×</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.clearButton}
+          onPress={clearFilters}
+        >
+          <Text style={styles.clearButtonText}>✕</Text>
+        </TouchableOpacity>
         )}
       </View>
 
@@ -244,18 +391,23 @@ export const DateFilterDropdown: React.FC = () => {
           activeOpacity={1}
           onPress={() => setIsOpen(false)}
         >
-          <View style={styles.dropdownContainer}>
-            <Text style={styles.dropdownTitle}>Filtrar por Data</Text>
+          <View style={[styles.dropdownContainer, { maxWidth: screenWidth - 40 }]}>
+            <Text style={styles.dropdownTitle}>📅 Filtrar por Data</Text>
             
             {/* Predefined Options */}
             {predefinedOptions.map((option, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.optionRow}
+                style={[styles.optionRow, isApplyingFilter && styles.optionRowDisabled]}
                 onPress={() => handlePredefinedOption(option)}
+                disabled={isApplyingFilter}
               >
-                <Text style={styles.optionLabel}>{option.label}</Text>
-                <Text style={styles.optionPeriod}>{option.period}</Text>
+                <Text style={[styles.optionLabel, isApplyingFilter && styles.optionLabelDisabled]}>
+                  {option.label}
+                </Text>
+                <Text style={[styles.optionPeriod, isApplyingFilter && styles.optionPeriodDisabled]}>
+                  {option.period}
+                </Text>
               </TouchableOpacity>
             ))}
 
@@ -263,115 +415,151 @@ export const DateFilterDropdown: React.FC = () => {
             <View style={styles.separator} />
 
             {/* Custom Range */}
-            <Text style={styles.customRangeTitle}>Intervalo Personalizado</Text>
+            <Text style={styles.customRangeTitle}>📊 Intervalo Personalizado</Text>
             
             <View style={styles.dateInputContainer}>
               <Text style={styles.dateInputLabel}>Data Inicial</Text>
-              <View style={styles.dateInputWrapper}>
+              <TouchableOpacity 
+                style={styles.dateInputWrapper}
+                onPress={() => setShowStartDatePicker(true)}
+              >
                 <TextInput
                   style={styles.dateInput}
                   value={customStartDate}
                   onChangeText={setCustomStartDate}
                   placeholder="dd/mm/aaaa"
                   placeholderTextColor="#9CA3AF"
+                  editable={false}
                 />
-                <Text style={styles.calendarIconSmall}>⚡</Text>
-              </View>
+                <Text style={styles.calendarIconSmall}>📅</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.dateInputContainer}>
               <Text style={styles.dateInputLabel}>Data Final</Text>
-              <View style={styles.dateInputWrapper}>
+              <TouchableOpacity 
+                style={styles.dateInputWrapper}
+                onPress={() => setShowEndDatePicker(true)}
+              >
                 <TextInput
                   style={styles.dateInput}
                   value={customEndDate}
                   onChangeText={setCustomEndDate}
                   placeholder="dd/mm/aaaa"
                   placeholderTextColor="#9CA3AF"
+                  editable={false}
                 />
-                <Text style={styles.calendarIconSmall}>⚡</Text>
-              </View>
+                <Text style={styles.calendarIconSmall}>📅</Text>
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity
               style={[
                 styles.applyButton,
-                (!customStartDate || !customEndDate) && styles.applyButtonDisabled
+                (!customStartDate || !customEndDate || isApplyingFilter) && styles.applyButtonDisabled
               ]}
               onPress={handleCustomRange}
-              disabled={!customStartDate || !customEndDate}
+              disabled={!customStartDate || !customEndDate || isApplyingFilter}
             >
               <Text style={[
                 styles.applyButtonText,
-                (!customStartDate || !customEndDate) && styles.applyButtonTextDisabled
+                (!customStartDate || !customEndDate || isApplyingFilter) && styles.applyButtonTextDisabled
               ]}>
-                Aplicar Filtro
+                {isApplyingFilter ? 'Aplicando...' : 'Aplicar Filtro'}
               </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Date Pickers */}
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={tempStartDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleStartDateChange}
+          maximumDate={tempEndDate}
+        />
+      )}
+
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={tempEndDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleEndDateChange}
+          minimumDate={tempStartDate}
+        />
+      )}
     </>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
-    minWidth: 100,
-    maxWidth: 140,
+    borderColor: colors.border,
+    minWidth: 70,
+    maxWidth: 100,
+    shadowColor: colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   filterButtonActive: {
-    backgroundColor: '#E8F4FD',
-    borderColor: '#B3D9FF',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500',
-    color: '#666666',
-    marginLeft: 6,
-    marginRight: 6,
+    color: colors.textSecondary,
+    marginLeft: 3,
+    marginRight: 3,
     flex: 1,
     textAlign: 'center',
   },
   filterButtonTextActive: {
-    color: '#1E88E5',
+    color: '#ffffff',
   },
   clearButton: {
-    marginLeft: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
+    marginLeft: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
   },
   clearButtonText: {
-    color: '#999999',
-    fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 14,
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    lineHeight: 10,
   },
   calendarIcon: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 10,
+    color: colors.textSecondary,
   },
   arrowIcon: {
-    fontSize: 10,
-    color: '#999999',
+    fontSize: 7,
+    color: colors.textSecondary,
     transform: [{ rotate: '0deg' }],
   },
   arrowIconOpen: {
@@ -379,102 +567,124 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 100,
-    paddingRight: 20,
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 100 : 80,
+    paddingHorizontal: 20,
   },
   dropdownContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    minWidth: 280,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   dropdownTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4A5568',
-    marginBottom: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   optionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   optionLabel: {
-    fontSize: 14,
-    color: '#4A5568',
-    fontWeight: '400',
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '500',
   },
   optionPeriod: {
     fontSize: 12,
-    color: '#999999',
+    color: colors.textSecondary,
     fontWeight: '400',
+    backgroundColor: colors.background,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  optionRowDisabled: {
+    opacity: 0.5,
+  },
+  optionLabelDisabled: {
+    color: colors.textSecondary,
+  },
+  optionPeriodDisabled: {
+    color: colors.textSecondary,
   },
   separator: {
     height: 1,
-    backgroundColor: '#E5E5E5',
-    marginVertical: 16,
+    backgroundColor: colors.border,
+    marginVertical: 20,
   },
   customRangeTitle: {
-    fontSize: 14,
-    color: '#4A5568',
-    fontWeight: '500',
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '600',
     marginBottom: 16,
+    textAlign: 'center',
   },
   dateInputContainer: {
     marginBottom: 16,
   },
   dateInputLabel: {
-    fontSize: 12,
-    color: '#666666',
+    fontSize: 14,
+    color: colors.text,
     fontWeight: '500',
     marginBottom: 8,
   },
   dateInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   dateInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#4A5568',
+    fontSize: 15,
+    color: colors.text,
   },
   calendarIconSmall: {
-    fontSize: 14,
-    color: '#999999',
+    fontSize: 16,
+    color: colors.textSecondary,
     marginLeft: 8,
   },
   applyButton: {
-    backgroundColor: '#E8F4FD',
-    borderRadius: 6,
-    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#B3D9FF',
+    marginTop: 12,
   },
   applyButtonDisabled: {
-    backgroundColor: '#F5F5F5',
-    borderColor: '#E5E5E5',
+    backgroundColor: colors.textSecondary,
   },
   applyButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1E88E5',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   applyButtonTextDisabled: {
-    color: '#999999',
+    color: colors.surface,
   },
 });

@@ -39,7 +39,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     'Outros',
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.value || !formData.description) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
@@ -51,23 +51,27 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       return;
     }
 
-    addExpense({
-      value,
-      date: formData.date,
-      description: formData.description,
-      category: formData.category,
-    });
+    try {
+      await addExpense({
+        value,
+        date: formData.date,
+        description: formData.description,
+        category: formData.category,
+      });
 
-    // Reset form
-    setFormData({
-      value: '',
-      date: new Date().toISOString().split('T')[0],
-      description: '',
-      category: 'Combustível',
-    });
+      // Reset form
+      setFormData({
+        value: '',
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        category: 'Combustível',
+      });
 
-    Alert.alert('Sucesso', 'Gasto adicionado com sucesso!');
-    onClose();
+      Alert.alert('Sucesso', 'Gasto adicionado com sucesso!');
+      onClose();
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao adicionar gasto. Tente novamente.');
+    }
   };
 
   const getCategoryIcon = (category: ExpenseCategory): string => {

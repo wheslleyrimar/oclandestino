@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,62 +6,242 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
-  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { PeriodTabs } from '../components/PeriodTabs';
 import { DateFilterDropdown } from '../components/DateFilterDropdown';
+import { DashboardData } from '../services/apiService';
+import { calculateIndicators } from '../utils/indicatorsCalculator';
+import { Ionicons } from '@expo/vector-icons';
 
 const OverviewScreen: React.FC = () => {
-  const { state, setPeriod, getDashboardData } = useFinance();
+  const { state, setPeriod, getDashboardData, setFilters } = useFinance();
   const { state: themeState } = useTheme();
-  
-  // Sempre renderizar o conteúdo, mesmo sem dados
-  // Os dados mock serão carregados pelo useEffect do contexto
+  const { state: authState } = useAuth();
+  const { t } = useTranslation();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const dashboardData = getDashboardData();
+  // Verificação de segurança para o tema e estado de finanças
+  if (!themeState || !themeState.colors) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#64748b' }}>{t('common.loading')}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!state) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#64748b' }}>{t('common.loading')}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  useEffect(() => {
+    // Definir filtros baseados no período selecionado
+    const now = new Date();
+    let startDate: string;
+    let endDate: string;
+
+    switch (state.selectedPeriod) {
+      case 'daily':
+        startDate = now.toISOString().split('T')[0];
+        endDate = now.toISOString().split('T')[0];
+        break;
+      case 'weekly':
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        startDate = startOfWeek.toISOString().split('T')[0];
+        endDate = endOfWeek.toISOString().split('T')[0];
+        break;
+      case 'monthly':
+      default:
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        startDate = startOfMonth.toISOString().split('T')[0];
+        endDate = endOfMonth.toISOString().split('T')[0];
+        break;
+    }
+
+
+    // Aplicar filtros
+    setFilters({
+      startDate,
+      endDate,
+      period: state.selectedPeriod,
+    });
+
+    loadDashboardData();
+  }, [state.selectedPeriod]);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await getDashboardData();
+      setDashboardData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePeriodChange = (period: 'daily' | 'weekly' | 'monthly') => {
     setPeriod(period);
   };
 
-  // Calcular percentuais
-  const totalRevenue = dashboardData.totalRevenue || 0;
-  const totalExpenses = dashboardData.totalExpenses || 0;
-  const netProfit = dashboardData.netProfit || 0;
+  // Definir estilos antes de usar
+  const styles = createStyles(themeState.colors);
+
+  // Verificação de segurança para o tema
+  if (!themeState || !themeState.colors) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Carregando...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: themeState.colors.background }]}>
+        <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.background} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0ea5e9" />
+          <Text style={styles.loadingText}>Carregando dados...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: themeState.colors.background }]}>
+        <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.background} />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>Erro: {error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: themeState.colors.background }]}>
+        <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.background} />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>Nenhum dado encontrado</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Calcular indicadores baseados no período selecionado
+  // Usar receitas e despesas filtradas pelo período selecionado
+  const filteredRevenues = state.revenues.filter(revenue => {
+    const revenueDate = new Date(revenue.date);
+    const now = new Date();
+    
+    switch (state.selectedPeriod) {
+      case 'daily':
+        return revenueDate.toDateString() === now.toDateString();
+      case 'weekly':
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return revenueDate >= startOfWeek && revenueDate <= endOfWeek;
+      case 'monthly':
+        return revenueDate.getMonth() === now.getMonth() && 
+               revenueDate.getFullYear() === now.getFullYear();
+      default:
+        return true;
+    }
+  });
+
+  const filteredExpenses = state.expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    const now = new Date();
+    
+    switch (state.selectedPeriod) {
+      case 'daily':
+        return expenseDate.toDateString() === now.toDateString();
+      case 'weekly':
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return expenseDate >= startOfWeek && expenseDate <= endOfWeek;
+      case 'monthly':
+        return expenseDate.getMonth() === now.getMonth() && 
+               expenseDate.getFullYear() === now.getFullYear();
+      default:
+        return true;
+    }
+  });
+
+  // Calcular totais baseados nos lançamentos filtrados
+  const totalRevenue = filteredRevenues.reduce((sum, revenue) => sum + revenue.value, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.value, 0);
+  const netProfit = totalRevenue - totalExpenses;
   
   const profitPercentage = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
   const expensePercentage = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
 
-  // Meta mensal
-  const monthlyGoal = state.monthlyGoal;
-  const goalPercentage = monthlyGoal ? (monthlyGoal.currentAmount / monthlyGoal.targetAmount) * 100 : 0;
+  const indicators = dashboardData ? calculateIndicators(
+    dashboardData,
+    filteredRevenues,
+    state.selectedPeriod
+  ) : null;
 
-  // Plataformas com percentuais
-  const platformsWithPercentage = (dashboardData.revenueByPlatform || []).map(platform => ({
+  // Debug logs
+
+  // Meta mensal com verificação de segurança
+  const monthlyGoal = state?.monthlyGoal;
+  const goalPercentage = monthlyGoal && monthlyGoal.targetAmount > 0 ? 
+    (monthlyGoal.currentAmount / monthlyGoal.targetAmount) * 100 : 0;
+
+
+  // Plataformas com percentuais e verificação de segurança
+  const platformsWithPercentage = (dashboardData?.revenueByPlatform || []).map(platform => ({
     ...platform,
     percentage: totalRevenue > 0 ? (platform.value / totalRevenue) * 100 : 0
   }));
 
-  const styles = createStyles(themeState.colors);
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.background} />
+      <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.surface} />
       
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.appIcon}>
-            <Text style={styles.appIconText}>📊</Text>
+          <View style={styles.headerIcon}>
+            <Ionicons name="home-outline" size={24} color={themeState.colors.text} />
           </View>
           <View style={styles.titleContainer}>
-            <Text style={styles.appName}>KLANS</Text>
-            <Text style={styles.title}>Visão Geral</Text>
+            <Text style={styles.title}>{t('overview.title')}</Text>
+            <Text style={styles.subtitle}>Visão geral dos seus ganhos</Text>
           </View>
         </View>
-        <DateFilterDropdown />
+        <View style={styles.headerRight}>
+          <Text style={styles.userGreeting}>
+            Olá, {authState.driver?.name?.split(' ')[0] || 'Usuário'}
+          </Text>
+          <DateFilterDropdown />
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -72,31 +252,39 @@ const OverviewScreen: React.FC = () => {
         />
 
         {/* Meta Mensal Card */}
-        {monthlyGoal && (
-          <View style={styles.goalCard}>
-            <View style={styles.goalHeader}>
-              <View style={styles.goalIcon}>
-                <Text style={styles.goalIconText}>🎯</Text>
-              </View>
-              <Text style={styles.goalTitle}>Meta Mensal</Text>
-              <Text style={styles.goalPercentage}>{goalPercentage.toFixed(0)}%</Text>
+        <View style={styles.goalCard}>
+          <View style={styles.goalHeader}>
+            <View style={styles.goalIcon}>
+              <Text style={styles.goalIconText}>🎯</Text>
             </View>
-            
-            <Text style={styles.goalAmount}>R$ {monthlyGoal.currentAmount.toFixed(2).replace('.', ',')}</Text>
-            <Text style={styles.goalTarget}>de R$ {monthlyGoal.targetAmount.toFixed(2).replace('.', ',')}</Text>
-            
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${Math.min(goalPercentage, 100)}%` }]} />
-            </View>
+            <Text style={styles.goalTitle}>{t('overview.monthlyGoal')}</Text>
+            <Text style={styles.goalPercentage}>{goalPercentage.toFixed(0)}%</Text>
           </View>
-        )}
+          
+          <Text style={styles.goalAmount}>
+            R$ {(monthlyGoal?.currentAmount || 0).toFixed(2).replace('.', ',')}
+          </Text>
+          <Text style={styles.goalTarget}>
+            de R$ {(monthlyGoal?.targetAmount || 0).toFixed(2).replace('.', ',')}
+          </Text>
+          
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${Math.min(goalPercentage, 100)}%` }]} />
+          </View>
+          
+          {!monthlyGoal && (
+            <Text style={styles.goalHint}>
+              Configure sua meta mensal nas configurações
+            </Text>
+          )}
+        </View>
 
         {/* Lucro e Despesas */}
         <View style={styles.profitExpenseRow}>
           <View style={styles.profitCard}>
             <View style={styles.profitHeader}>
               <Text style={styles.profitIcon}>📈</Text>
-              <Text style={styles.profitLabel}>Lucro</Text>
+              <Text style={styles.profitLabel}>{t('overview.netProfit')}</Text>
             </View>
             <Text style={styles.profitAmount}>R$ {netProfit.toFixed(2).replace('.', ',')}</Text>
             <Text style={styles.profitPercentage}>{profitPercentage.toFixed(1)}%</Text>
@@ -105,7 +293,7 @@ const OverviewScreen: React.FC = () => {
           <View style={styles.expenseCard}>
             <View style={styles.expenseHeader}>
               <Text style={styles.expenseIcon}>📉</Text>
-              <Text style={styles.expenseLabel}>Despesas</Text>
+              <Text style={styles.expenseLabel}>{t('overview.totalExpenses')}</Text>
             </View>
             <Text style={styles.expenseAmount}>R$ {totalExpenses.toFixed(2).replace('.', ',')}</Text>
             <Text style={styles.expensePercentage}>{expensePercentage.toFixed(1)}%</Text>
@@ -125,8 +313,10 @@ const OverviewScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Indicadores Mensais */}
-        <Text style={styles.sectionTitle}>Indicadores Mensais</Text>
+        {/* Indicadores por Período */}
+        <Text style={styles.sectionTitle}>
+          Indicadores {state.selectedPeriod === 'daily' ? t('overview.daily') : state.selectedPeriod === 'weekly' ? t('overview.weekly') : t('overview.monthly')}
+        </Text>
         
         <View style={styles.indicatorsGrid}>
           {/* Primeira linha */}
@@ -135,15 +325,15 @@ const OverviewScreen: React.FC = () => {
               <Text style={styles.indicatorIconText}>💰</Text>
             </View>
             <Text style={styles.indicatorLabel}>Média por Período</Text>
-            <Text style={styles.indicatorValue}>R$ {totalRevenue.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.indicatorValue}>R$ {(indicators?.averagePerPeriod || 0).toFixed(2).replace('.', ',')}</Text>
           </View>
 
           <View style={styles.indicatorCard}>
             <View style={[styles.indicatorIcon, { backgroundColor: '#dbeafe' }]}>
               <Text style={styles.indicatorIconText}>⏰</Text>
             </View>
-            <Text style={styles.indicatorLabel}>Média por Hora</Text>
-            <Text style={styles.indicatorValue}>R$ {dashboardData.averageEarningsPerHour.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.indicatorLabel}>{t('overview.averagePerHour')}</Text>
+            <Text style={styles.indicatorValue}>R$ {(indicators?.averagePerHour || 0).toFixed(2).replace('.', ',')}</Text>
           </View>
 
           <View style={styles.indicatorCard}>
@@ -151,7 +341,7 @@ const OverviewScreen: React.FC = () => {
               <Text style={styles.indicatorIconText}>🛣️</Text>
             </View>
             <Text style={styles.indicatorLabel}>Média por KM</Text>
-            <Text style={styles.indicatorValue}>R$ {dashboardData.averageEarningsPerKm.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.indicatorValue}>R$ {(indicators?.averagePerKm || 0).toFixed(2).replace('.', ',')}</Text>
           </View>
 
           {/* Segunda linha */}
@@ -159,16 +349,16 @@ const OverviewScreen: React.FC = () => {
             <View style={[styles.indicatorIcon, { backgroundColor: '#f3f4f6' }]}>
               <Text style={styles.indicatorIconText}>⏱️</Text>
             </View>
-            <Text style={styles.indicatorLabel}>Horas Trabalhadas</Text>
-            <Text style={styles.indicatorValue}>{Math.floor(dashboardData.totalHoursWorked)}:{String(Math.round((dashboardData.totalHoursWorked % 1) * 60)).padStart(2, '0')}h</Text>
+            <Text style={styles.indicatorLabel}>{t('overview.totalHours')}</Text>
+            <Text style={styles.indicatorValue}>{Math.floor(indicators?.hoursWorked || 0)}:{String(Math.round(((indicators?.hoursWorked || 0) % 1) * 60)).padStart(2, '0')}h</Text>
           </View>
 
           <View style={styles.indicatorCard}>
             <View style={[styles.indicatorIcon, { backgroundColor: '#dbeafe' }]}>
               <Text style={styles.indicatorIconText}>📊</Text>
             </View>
-            <Text style={styles.indicatorLabel}>Média de Horas</Text>
-            <Text style={styles.indicatorValue}>{Math.floor(dashboardData.averageHoursPerPeriod)}:{String(Math.round((dashboardData.averageHoursPerPeriod % 1) * 60)).padStart(2, '0')}h</Text>
+            <Text style={styles.indicatorLabel}>{t('overview.averageHours')}</Text>
+            <Text style={styles.indicatorValue}>{Math.floor(indicators?.averageHours || 0)}:{String(Math.round(((indicators?.averageHours || 0) % 1) * 60)).padStart(2, '0')}h</Text>
           </View>
 
           <View style={styles.indicatorCard}>
@@ -176,7 +366,7 @@ const OverviewScreen: React.FC = () => {
               <Text style={styles.indicatorIconText}>📏</Text>
             </View>
             <Text style={styles.indicatorLabel}>Total de KMs</Text>
-            <Text style={styles.indicatorValue}>{dashboardData.totalKilometersRidden.toFixed(1)} KM</Text>
+            <Text style={styles.indicatorValue}>{(indicators?.totalKms || 0).toFixed(1)} KM</Text>
           </View>
 
           {/* Terceira linha */}
@@ -184,24 +374,24 @@ const OverviewScreen: React.FC = () => {
             <View style={[styles.indicatorIcon, { backgroundColor: '#dcfce7' }]}>
               <Text style={styles.indicatorIconText}>📅</Text>
             </View>
-            <Text style={styles.indicatorLabel}>Dias Trabalhados</Text>
-            <Text style={styles.indicatorValue}>{dashboardData.workingDaysCount} dias</Text>
+            <Text style={styles.indicatorLabel}>{t('overview.workingDays')}</Text>
+            <Text style={styles.indicatorValue}>{indicators?.daysWorked || 0} dias</Text>
           </View>
 
           <View style={styles.indicatorCard}>
             <View style={[styles.indicatorIcon, { backgroundColor: '#dbeafe' }]}>
               <Text style={styles.indicatorIconText}>🚗</Text>
             </View>
-            <Text style={styles.indicatorLabel}>Corridas Realizadas</Text>
-            <Text style={styles.indicatorValue}>{dashboardData.totalTripsCount} corridas</Text>
+            <Text style={styles.indicatorLabel}>{t('overview.totalTrips')}</Text>
+            <Text style={styles.indicatorValue}>{indicators?.tripsCompleted || 0} corridas</Text>
           </View>
 
           <View style={styles.indicatorCard}>
             <View style={[styles.indicatorIcon, { backgroundColor: '#fed7aa' }]}>
               <Text style={styles.indicatorIconText}>🎯</Text>
             </View>
-            <Text style={styles.indicatorLabel}>Média por Corrida</Text>
-            <Text style={styles.indicatorValue}>R$ {dashboardData.averageEarningsPerTrip.toFixed(2).replace('.', ',')}</Text>
+            <Text style={styles.indicatorLabel}>{t('overview.averagePerTrip')}</Text>
+            <Text style={styles.indicatorValue}>R$ {(indicators?.averagePerTrip || 0).toFixed(2).replace('.', ',')}</Text>
           </View>
         </View>
 
@@ -244,41 +434,83 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 16,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  titleContainer: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 120,
   },
   titleContainer: {
     flex: 1,
   },
   appIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
+    shadowColor: colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   appIconText: {
-    fontSize: 20,
+    fontSize: 24,
   },
   appName: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 2,
+    fontWeight: '500',
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  userGreeting: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    marginBottom: 8,
+    textAlign: 'right',
   },
   filterButton: {
     flexDirection: 'row',
@@ -369,6 +601,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: '100%',
     backgroundColor: colors.primary,
     borderRadius: 4,
+  },
+  goalHint: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
   profitExpenseRow: {
     flexDirection: 'row',
@@ -544,6 +783,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     color: colors.textSecondary,
     fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
   },
 });
 

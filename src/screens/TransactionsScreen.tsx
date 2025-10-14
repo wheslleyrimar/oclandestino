@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,25 +7,36 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { TransactionCard } from '../components/TransactionCard';
 import { FilterBar } from '../components/FilterBar';
-import { DateFilterDropdown } from '../components/DateFilterDropdown';
 import { RevenueForm } from '../components/RevenueForm';
 import { ExpenseForm } from '../components/ExpenseForm';
 import { WorkEntryModal } from '../components/WorkEntryModal';
 import NewEntryModal from '../components/NewEntryModal';
+import { EditTransactionModal } from '../components/EditTransactionModal';
 
 const TransactionsScreen: React.FC = () => {
-  const { getFilteredRevenues, getFilteredExpenses } = useFinance();
+  const { getFilteredRevenues, getFilteredExpenses, loadData } = useFinance();
   const { state: themeState } = useTheme();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'all' | 'revenues' | 'expenses'>('all');
   const [showRevenueForm, setShowRevenueForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showWorkModal, setShowWorkModal] = useState(false); // Não abrir automaticamente
   const [showNewEntryModal, setShowNewEntryModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<((Revenue | Expense) & { type: 'revenue' | 'expense' }) | null>(null);
+
+  // Carregar dados quando a tela for montada
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const revenues = getFilteredRevenues();
   const expenses = getFilteredExpenses();
@@ -49,20 +60,42 @@ const TransactionsScreen: React.FC = () => {
 
   const filteredTransactions = getFilteredTransactions();
 
+  const handleEditTransaction = (transaction: (Revenue | Expense) & { type: 'revenue' | 'expense' }) => {
+    setSelectedTransaction(transaction);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = () => {
+    loadData(); // Recarregar dados após edição
+  };
+
+  // Verificação de segurança para o tema
+  if (!themeState || !themeState.colors) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Carregando...</Text>
+      </SafeAreaView>
+    );
+  }
+
   const styles = createStyles(themeState.colors);
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.background} />
+      <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.surface} />
       
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Transações</Text>
-            <Text style={styles.subtitle}>Histórico completo</Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerLeft}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="list-outline" size={24} color={themeState.colors.text} />
+            </View>
+            <View>
+              <Text style={styles.title}>Lançamentos</Text>
+              <Text style={styles.subtitle}>Gerencie suas receitas e gastos</Text>
+            </View>
           </View>
-          <DateFilterDropdown />
         </View>
       </View>
 
@@ -76,7 +109,7 @@ const TransactionsScreen: React.FC = () => {
           onPress={() => setActiveTab('all')}
         >
           <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
-            Todas
+            {t('transactions.all')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -84,7 +117,7 @@ const TransactionsScreen: React.FC = () => {
           onPress={() => setActiveTab('revenues')}
         >
           <Text style={[styles.tabText, activeTab === 'revenues' && styles.activeTabText]}>
-            Receitas
+            {t('transactions.revenue')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -109,7 +142,7 @@ const TransactionsScreen: React.FC = () => {
           style={[styles.addButton, styles.revenueButton]}
           onPress={() => setShowRevenueForm(true)}
         >
-          <Text style={styles.addButtonText}>+ Receita</Text>
+          <Text style={styles.addButtonText}>+ {t('transactions.revenue')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.addButton, styles.expenseButton]}
@@ -124,7 +157,7 @@ const TransactionsScreen: React.FC = () => {
         {filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
-              Nenhuma transação encontrada
+              {t('transactions.noTransactions')}
             </Text>
             <Text style={styles.emptyStateSubtext}>
               Adicione suas primeiras receitas e gastos
@@ -135,6 +168,7 @@ const TransactionsScreen: React.FC = () => {
             <TransactionCard
               key={`${transaction.type}-${transaction.id}`}
               transaction={transaction}
+              onEdit={handleEditTransaction}
             />
           ))
         )}
@@ -147,6 +181,9 @@ const TransactionsScreen: React.FC = () => {
       <NewEntryModal
         isVisible={showNewEntryModal}
         onClose={() => setShowNewEntryModal(false)}
+        onSuccess={() => {
+          loadData(); // Recarregar dados após sucesso
+        }}
       />
       <RevenueForm
         isVisible={showRevenueForm}
@@ -159,6 +196,15 @@ const TransactionsScreen: React.FC = () => {
       <WorkEntryModal
         isVisible={showWorkModal}
         onClose={() => setShowWorkModal(false)}
+      />
+      <EditTransactionModal
+        isVisible={showEditModal}
+        transaction={selectedTransaction}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedTransaction(null);
+        }}
+        onSuccess={handleEditSuccess}
       />
     </SafeAreaView>
   );
@@ -176,15 +222,25 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  headerContent: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    flex: 1,
+    alignItems: 'flex-start',
   },
-  titleContainer: {
-    flex: 1,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   title: {
     fontSize: 28,

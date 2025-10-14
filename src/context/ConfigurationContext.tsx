@@ -1,12 +1,18 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { DriverProfile, PerformanceGoals, AppPreferences, ConfigurationState } from '../types';
+import { apiService } from '../services/apiService';
+import { useAuth } from './AuthContext';
 
 interface ConfigurationContextType {
   state: ConfigurationState;
-  updateProfile: (profile: Partial<DriverProfile>) => void;
-  updateGoals: (goals: Partial<PerformanceGoals>) => void;
-  updatePreferences: (preferences: Partial<AppPreferences>) => void;
+  updateProfile: (profile: Partial<DriverProfile>) => Promise<void>;
+  updateGoals: (goals: Partial<PerformanceGoals>) => Promise<void>;
+  updatePreferences: (preferences: Partial<AppPreferences>) => Promise<void>;
   resetToDefaults: () => void;
+  loadConfiguration: () => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+  clearError: () => void;
 }
 
 type ConfigurationAction =
@@ -14,7 +20,10 @@ type ConfigurationAction =
   | { type: 'UPDATE_GOALS'; payload: Partial<PerformanceGoals> }
   | { type: 'UPDATE_PREFERENCES'; payload: Partial<AppPreferences> }
   | { type: 'RESET_TO_DEFAULTS' }
-  | { type: 'LOAD_CONFIGURATION'; payload: ConfigurationState };
+  | { type: 'LOAD_CONFIGURATION'; payload: ConfigurationState }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'CLEAR_ERROR' };
 
 const defaultProfile: DriverProfile = {
   id: '1',
@@ -40,7 +49,7 @@ const defaultGoals: PerformanceGoals = {
 const defaultPreferences: AppPreferences = {
   id: '1',
   language: 'pt-BR',
-  theme: 'light',
+  theme: 'system',
   notifications: {
     earnings: true,
     goals: true,
@@ -56,6 +65,8 @@ const initialState: ConfigurationState = {
   profile: defaultProfile,
   goals: defaultGoals,
   preferences: defaultPreferences,
+  isLoading: false,
+  error: null,
 };
 
 const configurationReducer = (state: ConfigurationState, action: ConfigurationAction): ConfigurationState => {
@@ -83,6 +94,22 @@ const configurationReducer = (state: ConfigurationState, action: ConfigurationAc
       };
     case 'LOAD_CONFIGURATION':
       return action.payload;
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload,
+        isLoading: false,
+      };
+    case 'CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
+      };
     default:
       return state;
   }
@@ -104,32 +131,101 @@ interface ConfigurationProviderProps {
 
 export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(configurationReducer, initialState);
+  const { state: authState } = useAuth();
 
-  // Load configuration from storage on first render
+  // Load configuration when authenticated
   useEffect(() => {
-    // TODO: Load from AsyncStorage or other persistent storage
-    // For now, using default values
-  }, []);
+    if (authState.isAuthenticated && !authState.isLoading) {
+      loadConfiguration();
+    }
+  }, [authState.isAuthenticated, authState.isLoading]);
 
-  // Save configuration to storage whenever it changes
-  useEffect(() => {
-    // TODO: Save to AsyncStorage or other persistent storage
-  }, [state]);
+  const loadConfiguration = async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
 
-  const updateProfile = (profile: Partial<DriverProfile>) => {
-    dispatch({ type: 'UPDATE_PROFILE', payload: profile });
+      const [profileResponse, goalsResponse, preferencesResponse] = await Promise.all([
+        apiService.getProfile(),
+        apiService.getPerformanceGoals(),
+        apiService.getPreferences().catch(() => null), // Optional
+      ]);
+
+      const configuration: ConfigurationState = {
+        profile: profileResponse.success ? profileResponse.data : defaultProfile,
+        goals: goalsResponse.success ? goalsResponse.data : defaultGoals,
+        preferences: preferencesResponse?.data || defaultPreferences,
+      };
+
+      dispatch({ type: 'LOAD_CONFIGURATION', payload: configuration });
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to load configuration',
+      });
+    }
   };
 
-  const updateGoals = (goals: Partial<PerformanceGoals>) => {
-    dispatch({ type: 'UPDATE_GOALS', payload: goals });
+  const updateProfile = async (profile: Partial<DriverProfile>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.updateProfile(profile);
+      
+      if (response.success) {
+        dispatch({ type: 'UPDATE_PROFILE', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to update profile',
+      });
+    }
   };
 
-  const updatePreferences = (preferences: Partial<AppPreferences>) => {
-    dispatch({ type: 'UPDATE_PREFERENCES', payload: preferences });
+  const updateGoals = async (goals: Partial<PerformanceGoals>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.updatePerformanceGoals(goals);
+      
+      if (response.success) {
+        dispatch({ type: 'UPDATE_GOALS', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to update goals',
+      });
+    }
+  };
+
+  const updatePreferences = async (preferences: Partial<AppPreferences>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.updatePreferences(preferences);
+      
+      if (response.success) {
+        dispatch({ type: 'UPDATE_PREFERENCES', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to update preferences',
+      });
+    }
   };
 
   const resetToDefaults = () => {
     dispatch({ type: 'RESET_TO_DEFAULTS' });
+  };
+
+  const clearError = () => {
+    dispatch({ type: 'CLEAR_ERROR' });
   };
 
   const value: ConfigurationContextType = {
@@ -138,6 +234,10 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
     updateGoals,
     updatePreferences,
     resetToDefaults,
+    loadConfiguration,
+    isLoading: state.isLoading || false,
+    error: state.error || null,
+    clearError,
   };
 
   return <ConfigurationContext.Provider value={value}>{children}</ConfigurationContext.Provider>;

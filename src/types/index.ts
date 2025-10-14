@@ -4,11 +4,12 @@ export interface Revenue {
   date: string;
   description: string;
   platform: 'Uber' | '99' | 'inDrive' | 'Cabify' | 'Outros';
-  createdAt: string;
-  // New fields for enhanced metrics
   hoursWorked?: number;
   kilometersRidden?: number;
   tripsCount?: number;
+  driverId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Expense {
@@ -17,7 +18,9 @@ export interface Expense {
   date: string;
   description: string;
   category: 'Combustível' | 'Manutenção' | 'Alimentação' | 'Pedágio' | 'Estacionamento' | 'Outros';
+  driverId: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface DashboardData {
@@ -62,11 +65,15 @@ export interface MonthlyGoal {
   targetAmount: number;
   currentAmount: number;
   month: string; // YYYY-MM format
-  platformBreakdown: Array<{
+  driverId: string;
+  platformBreakdowns: Array<{
+    id: string;
     platform: string;
     percentage: number;
     amount: number;
   }>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PeriodMetrics {
@@ -95,6 +102,8 @@ export interface DriverProfile {
   vehicleModel: string;
   vehiclePlate: string;
   avatar?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PerformanceGoals {
@@ -106,25 +115,34 @@ export interface PerformanceGoals {
   averageEarningsPerHourGoal: number;
   averageEarningsPerTripGoal: number;
   workingDaysPerWeekGoal: number;
+  driverId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AppPreferences {
   id: string;
   language: 'pt-BR' | 'en-US' | 'es-ES';
   theme: 'light' | 'dark' | 'auto';
-  notifications: {
+  currency: 'BRL' | 'USD' | 'EUR';
+  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+  timeFormat: '24h' | '12h';
+  notificationSettings: {
+    id: string;
     earnings: boolean;
     goals: boolean;
     reminders: boolean;
     promotions: boolean;
   };
-  currency: 'BRL' | 'USD' | 'EUR';
-  dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
-  timeFormat: '24h' | '12h';
+  driverId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ConfigurationState {
   profile: DriverProfile;
   goals: PerformanceGoals;
   preferences: AppPreferences;
+  isLoading?: boolean;
+  error?: string | null;
 }

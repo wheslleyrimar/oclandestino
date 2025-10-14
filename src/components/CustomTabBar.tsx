@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,21 +8,30 @@ import {
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../context/ThemeContext';
-import NewEntryModal from './NewEntryModal';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
   descriptors,
   navigation,
 }) => {
-  const [showNewEntryModal, setShowNewEntryModal] = useState(false);
   const { state: themeState } = useTheme();
+
+  // Verificação de segurança
+  if (!themeState || !themeState.colors) {
+    return null;
+  }
+
+  if (!state || !descriptors) {
+    return null;
+  }
   const getTabIcon = (routeName: string, isFocused: boolean) => {
     switch (routeName) {
       case 'Overview':
         return '🏠';
+      case 'Dashboard':
+        return '📊';
       case 'Transactions':
-        return '➕'; // Será substituído pelo botão especial
+        return '📋';
       case 'Configuration':
         return '⚙️';
       default:
@@ -34,8 +43,10 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
     switch (routeName) {
       case 'Overview':
         return 'Painel';
+      case 'Dashboard':
+        return 'Dashboard';
       case 'Transactions':
-        return 'Novo';
+        return 'Lançamentos';
       case 'Configuration':
         return 'Config';
       default:
@@ -65,24 +76,6 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             }
           };
 
-          // Botão especial para "Novo"
-          if (route.name === 'Transactions') {
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.newButton}
-                onPress={() => setShowNewEntryModal(true)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.newButtonContent}>
-                  <Text style={styles.newButtonIcon}>➕</Text>
-                </View>
-                <Text style={styles.newButtonLabel}>Novo</Text>
-              </TouchableOpacity>
-            );
-          }
-
-          // Botões normais
           return (
             <TouchableOpacity
               key={index}
@@ -111,12 +104,6 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
           );
         })}
       </View>
-      
-      {/* Modal */}
-      <NewEntryModal
-        isVisible={showNewEntryModal}
-        onClose={() => setShowNewEntryModal(false)}
-      />
     </View>
   );
 };
@@ -171,37 +158,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.primary,
-  },
-  newButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-  },
-  newButtonContent: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    marginBottom: 4,
-  },
-  newButtonIcon: {
-    fontSize: 24,
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  newButtonLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.success,
   },
 });

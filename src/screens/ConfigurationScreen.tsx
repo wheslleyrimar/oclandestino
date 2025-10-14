@@ -9,42 +9,53 @@ import {
   StatusBar,
 } from 'react-native';
 import { useConfiguration } from '../context/ConfigurationContext';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileEditModal from '../components/ProfileEditModal';
 import GoalsEditModal from '../components/GoalsEditModal';
 import PreferencesEditModal from '../components/PreferencesEditModal';
+import { showLogoutConfirm } from '../utils/confirmDialog';
 
 type ConfigurationSection = 'profile' | 'goals' | 'preferences';
 
 const ConfigurationScreen = () => {
   const { state } = useConfiguration();
+  const { logout } = useAuth();
   const { state: themeState, setTheme } = useTheme();
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<ConfigurationSection>('profile');
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [goalsModalVisible, setGoalsModalVisible] = useState(false);
   const [preferencesModalVisible, setPreferencesModalVisible] = useState(false);
 
+  const handleLogout = () => {
+    showLogoutConfirm(async () => {
+      await logout();
+    });
+  };
+
   const sections = [
     {
       id: 'profile' as ConfigurationSection,
-      title: 'Perfil',
+      title: t('configuration.profile'),
       icon: '👤',
-      description: 'Dados pessoais e do veículo',
+      description: t('configuration.profileDescription'),
       color: '#3b82f6',
     },
     {
       id: 'goals' as ConfigurationSection,
-      title: 'Metas',
+      title: t('configuration.goals'),
       icon: '🎯',
-      description: 'Metas de desempenho',
+      description: t('configuration.goalsDescription'),
       color: '#22c55e',
     },
     {
       id: 'preferences' as ConfigurationSection,
-      title: 'Preferências',
+      title: t('configuration.preferences'),
       icon: '⚙️',
-      description: 'Configurações do app',
+      description: t('configuration.preferencesDescription'),
       color: '#f59e0b',
     },
   ];
@@ -54,7 +65,7 @@ const ConfigurationScreen = () => {
       {/* Profile Header Card */}
       <View style={styles.profileHeaderCard}>
         <View style={styles.profileAvatar}>
-          <Text style={styles.profileAvatarText}>👤</Text>
+          <Ionicons name="person-outline" size={20} color="#6b7280" />
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{state.profile.name}</Text>
@@ -64,20 +75,20 @@ const ConfigurationScreen = () => {
           style={styles.editProfileButton}
           onPress={() => setProfileModalVisible(true)}
         >
-          <Ionicons name="create-outline" size={16} color="#3b82f6" />
+          <Ionicons name="pencil" size={16} color={themeState.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Info Cards */}
       <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Informações Pessoais</Text>
+        <Text style={styles.sectionTitle}>{t('configuration.personalInfo')}</Text>
         <View style={styles.infoCards}>
           <View style={styles.infoCard}>
             <View style={styles.infoCardIcon}>
               <Text style={styles.infoCardIconText}>📱</Text>
             </View>
             <View style={styles.infoCardContent}>
-              <Text style={styles.infoCardLabel}>Telefone</Text>
+              <Text style={styles.infoCardLabel}>{t('configuration.phone')}</Text>
               <Text style={styles.infoCardValue}>{state.profile.phone}</Text>
             </View>
           </View>
@@ -87,7 +98,7 @@ const ConfigurationScreen = () => {
               <Text style={styles.infoCardIconText}>🆔</Text>
             </View>
             <View style={styles.infoCardContent}>
-              <Text style={styles.infoCardLabel}>CNH</Text>
+              <Text style={styles.infoCardLabel}>{t('configuration.license')}</Text>
               <Text style={styles.infoCardValue}>{state.profile.licenseNumber}</Text>
             </View>
           </View>
@@ -96,14 +107,14 @@ const ConfigurationScreen = () => {
 
       {/* Vehicle Section */}
       <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Veículo</Text>
+        <Text style={styles.sectionTitle}>{t('configuration.vehicleInfo')}</Text>
         <View style={styles.infoCards}>
           <View style={styles.infoCard}>
             <View style={styles.infoCardIcon}>
               <Text style={styles.infoCardIconText}>🚗</Text>
             </View>
             <View style={styles.infoCardContent}>
-              <Text style={styles.infoCardLabel}>Modelo</Text>
+              <Text style={styles.infoCardLabel}>{t('configuration.vehicleModel')}</Text>
               <Text style={styles.infoCardValue}>{state.profile.vehicleModel}</Text>
             </View>
           </View>
@@ -113,7 +124,7 @@ const ConfigurationScreen = () => {
               <Text style={styles.infoCardIconText}>🔢</Text>
             </View>
             <View style={styles.infoCardContent}>
-              <Text style={styles.infoCardLabel}>Placa</Text>
+              <Text style={styles.infoCardLabel}>{t('configuration.vehiclePlate')}</Text>
               <Text style={styles.infoCardValue}>{state.profile.vehiclePlate}</Text>
             </View>
           </View>
@@ -127,30 +138,30 @@ const ConfigurationScreen = () => {
       {/* Goals Header */}
       <View style={styles.goalsHeaderCard}>
         <View style={styles.goalsHeaderIcon}>
-          <Text style={styles.goalsHeaderIconText}>🎯</Text>
+          <Ionicons name="flag-outline" size={20} color="#6b7280" />
         </View>
         <View style={styles.goalsHeaderContent}>
-          <Text style={styles.goalsHeaderTitle}>Metas de Desempenho</Text>
-          <Text style={styles.goalsHeaderSubtitle}>Configure suas metas de ganhos e trabalho</Text>
+          <Text style={styles.goalsHeaderTitle}>{t('configuration.performanceGoals')}</Text>
+          <Text style={styles.goalsHeaderSubtitle}>{t('configuration.goalsDescription')}</Text>
         </View>
         <TouchableOpacity 
           style={styles.editGoalsButton}
           onPress={() => setGoalsModalVisible(true)}
         >
-          <Ionicons name="create-outline" size={16} color="#22c55e" />
+          <Ionicons name="pencil" size={16} color={themeState.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Earnings Goals */}
       <View style={styles.goalsSection}>
-        <Text style={styles.sectionTitle}>Metas de Ganhos</Text>
+        <Text style={styles.sectionTitle}>{t('configuration.earningsGoals')}</Text>
         <View style={styles.goalsCards}>
           <View style={styles.goalCard}>
             <View style={styles.goalCardIcon}>
               <Text style={styles.goalCardIconText}>💰</Text>
             </View>
             <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Ganhos Mensais</Text>
+              <Text style={styles.goalCardLabel}>{t('configuration.monthlyEarningsGoal')}</Text>
               <Text style={styles.goalCardValue}>R$ {state.goals.monthlyEarningsGoal.toLocaleString()}</Text>
             </View>
           </View>
@@ -160,7 +171,7 @@ const ConfigurationScreen = () => {
               <Text style={styles.goalCardIconText}>⏱️</Text>
             </View>
             <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Ganho por Hora</Text>
+              <Text style={styles.goalCardLabel}>{t('configuration.averageEarningsPerHourGoal')}</Text>
               <Text style={styles.goalCardValue}>R$ {state.goals.averageEarningsPerHourGoal}/h</Text>
             </View>
           </View>
@@ -230,33 +241,33 @@ const ConfigurationScreen = () => {
       {/* Preferences Header */}
       <View style={styles.preferencesHeaderCard}>
         <View style={styles.preferencesHeaderIcon}>
-          <Text style={styles.preferencesHeaderIconText}>⚙️</Text>
+          <Ionicons name="settings-outline" size={20} color="#6b7280" />
         </View>
         <View style={styles.preferencesHeaderContent}>
-          <Text style={styles.preferencesHeaderTitle}>Preferências do App</Text>
-          <Text style={styles.preferencesHeaderSubtitle}>Personalize sua experiência de uso</Text>
+          <Text style={styles.preferencesHeaderTitle}>{t('configuration.preferences')}</Text>
+          <Text style={styles.preferencesHeaderSubtitle}>{t('configuration.preferencesDescription')}</Text>
         </View>
         <TouchableOpacity 
           style={styles.editPreferencesButton}
           onPress={() => setPreferencesModalVisible(true)}
         >
-          <Ionicons name="create-outline" size={16} color="#f59e0b" />
+          <Ionicons name="pencil" size={16} color={themeState.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* App Settings */}
       <View style={styles.preferencesSection}>
-        <Text style={styles.sectionTitle}>Configurações do App</Text>
+        <Text style={styles.sectionTitle}>{t('configuration.appSettings')}</Text>
         <View style={styles.preferencesCards}>
           <View style={styles.preferenceCard}>
             <View style={styles.preferenceCardIcon}>
               <Text style={styles.preferenceCardIconText}>🌐</Text>
             </View>
             <View style={styles.preferenceCardContent}>
-              <Text style={styles.preferenceCardLabel}>Idioma</Text>
+              <Text style={styles.preferenceCardLabel}>{t('configuration.language')}</Text>
               <Text style={styles.preferenceCardValue}>
-                {state.preferences.language === 'pt-BR' ? 'Português' : 
-                 state.preferences.language === 'en-US' ? 'English' : 'Español'}
+                {state.preferences?.language === 'pt-BR' ? t('preferencesModal.portuguese') : 
+                 state.preferences?.language === 'en-US' ? t('preferencesModal.english') : t('preferencesModal.spanish')}
               </Text>
             </View>
           </View>
@@ -266,11 +277,11 @@ const ConfigurationScreen = () => {
               <Text style={styles.preferenceCardIconText}>🎨</Text>
             </View>
             <View style={styles.preferenceCardContent}>
-              <Text style={styles.preferenceCardLabel}>Tema</Text>
+              <Text style={styles.preferenceCardLabel}>{t('configuration.theme')}</Text>
               <Text style={styles.preferenceCardValue}>
-                {themeState.theme === 'light' ? 'Claro' : 
-                 themeState.theme === 'dark' ? 'Escuro' : 
-                 themeState.theme === 'auto' ? 'Automático' : 'Sistema'}
+                {themeState.theme === 'light' ? t('preferencesModal.light') : 
+                 themeState.theme === 'dark' ? t('preferencesModal.dark') : 
+                 themeState.theme === 'auto' ? t('preferencesModal.auto') : t('preferencesModal.system')}
               </Text>
             </View>
           </View>
@@ -282,8 +293,8 @@ const ConfigurationScreen = () => {
             <View style={styles.preferenceCardContent}>
               <Text style={styles.preferenceCardLabel}>Moeda</Text>
               <Text style={styles.preferenceCardValue}>
-                {state.preferences.currency === 'BRL' ? 'Real (R$)' : 
-                 state.preferences.currency === 'USD' ? 'Dólar ($)' : 'Euro (€)'}
+                {state.preferences?.currency === 'BRL' ? 'Real (R$)' : 
+                 state.preferences?.currency === 'USD' ? 'Dólar ($)' : 'Euro (€)'}
               </Text>
             </View>
           </View>
@@ -294,7 +305,7 @@ const ConfigurationScreen = () => {
             </View>
             <View style={styles.preferenceCardContent}>
               <Text style={styles.preferenceCardLabel}>Formato de Data</Text>
-              <Text style={styles.preferenceCardValue}>{state.preferences.dateFormat}</Text>
+              <Text style={styles.preferenceCardValue}>{state.preferences?.dateFormat || 'DD/MM/YYYY'}</Text>
             </View>
           </View>
           
@@ -305,7 +316,7 @@ const ConfigurationScreen = () => {
             <View style={styles.preferenceCardContent}>
               <Text style={styles.preferenceCardLabel}>Formato de Hora</Text>
               <Text style={styles.preferenceCardValue}>
-                {state.preferences.timeFormat === '24h' ? '24 horas' : '12 horas'}
+                {state.preferences?.timeFormat === '24h' ? '24 horas' : '12 horas'}
               </Text>
             </View>
           </View>
@@ -324,13 +335,13 @@ const ConfigurationScreen = () => {
               <Text style={styles.notificationCardLabel}>Ganhos</Text>
               <View style={[
                 styles.notificationStatus, 
-                { backgroundColor: state.preferences.notifications.earnings ? '#dcfce7' : '#f3f4f6' }
+                { backgroundColor: state.preferences.notifications?.earnings ? '#dcfce7' : '#f3f4f6' }
               ]}>
                 <Text style={[
                   styles.notificationStatusText, 
-                  { color: state.preferences.notifications.earnings ? '#22c55e' : '#6b7280' }
+                  { color: state.preferences.notifications?.earnings ? '#22c55e' : '#6b7280' }
                 ]}>
-                  {state.preferences.notifications.earnings ? 'Ativado' : 'Desativado'}
+                  {state.preferences.notifications?.earnings ? 'Ativado' : 'Desativado'}
                 </Text>
               </View>
             </View>
@@ -344,13 +355,13 @@ const ConfigurationScreen = () => {
               <Text style={styles.notificationCardLabel}>Metas</Text>
               <View style={[
                 styles.notificationStatus, 
-                { backgroundColor: state.preferences.notifications.goals ? '#dcfce7' : '#f3f4f6' }
+                { backgroundColor: state.preferences.notifications?.goals ? '#dcfce7' : '#f3f4f6' }
               ]}>
                 <Text style={[
                   styles.notificationStatusText, 
-                  { color: state.preferences.notifications.goals ? '#22c55e' : '#6b7280' }
+                  { color: state.preferences.notifications?.goals ? '#22c55e' : '#6b7280' }
                 ]}>
-                  {state.preferences.notifications.goals ? 'Ativado' : 'Desativado'}
+                  {state.preferences.notifications?.goals ? 'Ativado' : 'Desativado'}
                 </Text>
               </View>
             </View>
@@ -364,13 +375,13 @@ const ConfigurationScreen = () => {
               <Text style={styles.notificationCardLabel}>Lembretes</Text>
               <View style={[
                 styles.notificationStatus, 
-                { backgroundColor: state.preferences.notifications.reminders ? '#dcfce7' : '#f3f4f6' }
+                { backgroundColor: state.preferences.notifications?.reminders ? '#dcfce7' : '#f3f4f6' }
               ]}>
                 <Text style={[
                   styles.notificationStatusText, 
-                  { color: state.preferences.notifications.reminders ? '#22c55e' : '#6b7280' }
+                  { color: state.preferences.notifications?.reminders ? '#22c55e' : '#6b7280' }
                 ]}>
-                  {state.preferences.notifications.reminders ? 'Ativado' : 'Desativado'}
+                  {state.preferences.notifications?.reminders ? 'Ativado' : 'Desativado'}
                 </Text>
               </View>
             </View>
@@ -384,13 +395,13 @@ const ConfigurationScreen = () => {
               <Text style={styles.notificationCardLabel}>Promoções</Text>
               <View style={[
                 styles.notificationStatus, 
-                { backgroundColor: state.preferences.notifications.promotions ? '#dcfce7' : '#f3f4f6' }
+                { backgroundColor: state.preferences.notifications?.promotions ? '#dcfce7' : '#f3f4f6' }
               ]}>
                 <Text style={[
                   styles.notificationStatusText, 
-                  { color: state.preferences.notifications.promotions ? '#22c55e' : '#6b7280' }
+                  { color: state.preferences.notifications?.promotions ? '#22c55e' : '#6b7280' }
                 ]}>
-                  {state.preferences.notifications.promotions ? 'Ativado' : 'Desativado'}
+                  {state.preferences.notifications?.promotions ? 'Ativado' : 'Desativado'}
                 </Text>
               </View>
             </View>
@@ -419,16 +430,16 @@ const ConfigurationScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.headerBackground} />
       
-      {/* Modern Header */}
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
+        <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
-              <Text style={styles.headerIconText}>⚙️</Text>
+              <Ionicons name="settings-outline" size={24} color={themeState.colors.text} />
             </View>
             <View>
-              <Text style={styles.headerTitle}>Configurações</Text>
-              <Text style={styles.headerSubtitle}>Personalize sua experiência</Text>
+              <Text style={styles.title}>{t('configuration.title')}</Text>
+              <Text style={styles.subtitle}>{t('configuration.preferencesDescription')}</Text>
             </View>
           </View>
         </View>
@@ -449,6 +460,7 @@ const ConfigurationScreen = () => {
                 activeSection === section.id && styles.activeModernTab,
               ]}
               onPress={() => setActiveSection(section.id)}
+              activeOpacity={0.7}
             >
               <View style={[
                 styles.tabIconContainer,
@@ -470,6 +482,21 @@ const ConfigurationScreen = () => {
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderActiveSection()}
+        
+        {/* Logout Button */}
+        <View style={styles.logoutSection}>
+          <TouchableOpacity 
+            style={styles.logoutButton} 
+            onPress={handleLogout}
+            activeOpacity={0.8}
+          >
+            <View style={styles.logoutIconContainer}>
+              <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+            </View>
+            <Text style={styles.logoutButtonText}>{t('configuration.logout')}</Text>
+          </TouchableOpacity>
+        </View>
+        
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
@@ -497,201 +524,212 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   
-  // Modern Header
+  // Header
   header: {
-    backgroundColor: colors.headerBackground,
-    paddingTop: 20,
-    paddingBottom: 24,
     paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  headerContent: {
+  headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  headerIconText: {
-    fontSize: 24,
-  },
-  headerTitle: {
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 4,
+    color: colors.text,
   },
-  headerSubtitle: {
+  subtitle: {
     fontSize: 16,
     color: colors.textSecondary,
+    marginTop: 4,
   },
 
   // Modern Tab Navigation
   tabContainer: {
-    backgroundColor: colors.tabBackground,
-    paddingVertical: 16,
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   tabScrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   modernTab: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginRight: 12,
     borderRadius: 16,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
-    minWidth: 100,
+    minWidth: 90,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   activeModernTab: {
-    backgroundColor: colors.tabActiveBackground,
-    borderColor: colors.tabActiveBackground,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowOpacity: 0.15,
+    elevation: 4,
   },
   tabIconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   activeTabIconContainer: {
-    backgroundColor: colors.tabActiveText,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   tabIcon: {
     fontSize: 16,
   },
   tabLabel: {
     fontSize: 12,
-    color: colors.tabText,
+    color: colors.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
   },
   activeTabLabel: {
-    color: colors.tabActiveText,
+    color: '#ffffff',
   },
 
   // Content
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   modernContent: {
-    paddingTop: 20,
+    paddingTop: 16,
   },
 
   // Profile Section
   profileHeaderCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   profileAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: colors.info,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   profileAvatarText: {
-    fontSize: 28,
+    fontSize: 20,
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   profileEmail: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   editProfileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // Info Sections
   infoSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: 12,
     paddingLeft: 4,
   },
   infoCards: {
-    gap: 12,
+    gap: 8,
   },
   infoCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   infoCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   infoCardIconText: {
-    fontSize: 20,
+    fontSize: 16,
   },
   infoCardContent: {
     flex: 1,
   },
   infoCardLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 2,
     fontWeight: '500',
   },
   infoCardValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -699,92 +737,96 @@ const createStyles = (colors: any) => StyleSheet.create({
   // Goals Section
   goalsHeaderCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   goalsHeaderIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: colors.success,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   goalsHeaderIconText: {
-    fontSize: 28,
+    fontSize: 20,
   },
   goalsHeaderContent: {
     flex: 1,
   },
   goalsHeaderTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   goalsHeaderSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   editGoalsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.success,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   goalsSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   goalsCards: {
-    gap: 12,
+    gap: 8,
   },
   goalCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   goalCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: colors.warning,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   goalCardIconText: {
-    fontSize: 20,
+    fontSize: 16,
   },
   goalCardContent: {
     flex: 1,
   },
   goalCardLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 2,
     fontWeight: '500',
   },
   goalCardValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -792,123 +834,127 @@ const createStyles = (colors: any) => StyleSheet.create({
   // Preferences Section
   preferencesHeaderCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   preferencesHeaderIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: colors.warning,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   preferencesHeaderIconText: {
-    fontSize: 28,
+    fontSize: 20,
   },
   preferencesHeaderContent: {
     flex: 1,
   },
   preferencesHeaderTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   preferencesHeaderSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   editPreferencesButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.warning,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   preferencesSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   preferencesCards: {
-    gap: 12,
+    gap: 8,
   },
   preferenceCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   preferenceCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   preferenceCardIconText: {
-    fontSize: 20,
+    fontSize: 16,
   },
   preferenceCardContent: {
     flex: 1,
   },
   preferenceCardLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 2,
     fontWeight: '500',
   },
   preferenceCardValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
 
   // Notifications
   notificationsCards: {
-    gap: 12,
+    gap: 8,
   },
   notificationCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   notificationCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   notificationCardIconText: {
-    fontSize: 20,
+    fontSize: 16,
   },
   notificationCardContent: {
     flex: 1,
@@ -917,22 +963,56 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
   },
   notificationCardLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
   notificationStatus: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
   },
   notificationStatusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
 
   bottomSpacing: {
-    height: 120,
+    height: 80,
+  },
+  logoutSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  logoutIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#fecaca',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ef4444',
   },
 });
 

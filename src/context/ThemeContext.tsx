@@ -94,6 +94,10 @@ const initialState: ThemeState = {
 };
 
 const getSystemTheme = (): boolean => {
+  if (typeof window !== 'undefined') {
+    // Para web, usar media query
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
   return Appearance.getColorScheme() === 'dark';
 };
 
@@ -168,14 +172,28 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
       return () => clearInterval(interval);
     } else if (state.theme === 'system') {
-      const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-        const isDark = colorScheme === 'dark';
-        if (isDark !== state.isDark) {
-          dispatch({ type: 'SET_IS_DARK', payload: isDark });
-        }
-      });
-
-      return () => subscription?.remove();
+      if (typeof window !== 'undefined') {
+        // Para web, usar media query listener
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (e: MediaQueryListEvent) => {
+          const isDark = e.matches;
+          if (isDark !== state.isDark) {
+            dispatch({ type: 'SET_IS_DARK', payload: isDark });
+          }
+        };
+        
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+      } else {
+        // Para mobile, usar Appearance
+        const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+          const isDark = colorScheme === 'dark';
+          if (isDark !== state.isDark) {
+            dispatch({ type: 'SET_IS_DARK', payload: isDark });
+          }
+        });
+        return () => subscription?.remove();
+      }
     }
   }, [state.theme, state.isDark]);
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { Revenue, Expense, DashboardData, FilterOptions, MonthlyGoal, PeriodMetrics } from '../types';
-import { mockRevenues, mockExpenses, mockMonthlyGoal } from '../data/mockData';
+import { apiService } from '../services/apiService';
+import { useAuth } from './AuthContext';
 
 interface FinanceState {
   revenues: Revenue[];
@@ -8,6 +9,8 @@ interface FinanceState {
   filters: FilterOptions;
   monthlyGoal: MonthlyGoal | null;
   selectedPeriod: 'daily' | 'weekly' | 'monthly';
+  isLoading: boolean;
+  error: string | null;
 }
 
 type FinanceAction =
@@ -20,7 +23,10 @@ type FinanceAction =
   | { type: 'SET_FILTERS'; payload: FilterOptions }
   | { type: 'SET_PERIOD'; payload: 'daily' | 'weekly' | 'monthly' }
   | { type: 'SET_MONTHLY_GOAL'; payload: MonthlyGoal }
-  | { type: 'LOAD_DATA'; payload: { revenues: Revenue[]; expenses: Expense[]; monthlyGoal?: MonthlyGoal } };
+  | { type: 'LOAD_DATA'; payload: { revenues: Revenue[]; expenses: Expense[]; monthlyGoal?: MonthlyGoal } }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'CLEAR_ERROR' };
 
 const initialState: FinanceState = {
   revenues: [],
@@ -28,6 +34,8 @@ const initialState: FinanceState = {
   filters: {},
   monthlyGoal: null,
   selectedPeriod: 'monthly',
+  isLoading: false,
+  error: null,
 };
 
 const financeReducer = (state: FinanceState, action: FinanceAction): FinanceState => {
@@ -87,6 +95,24 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
         revenues: action.payload.revenues,
         expenses: action.payload.expenses,
         monthlyGoal: action.payload.monthlyGoal || state.monthlyGoal,
+        isLoading: false,
+        error: null,
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload,
+        isLoading: false,
+      };
+    case 'CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
       };
     default:
       return state;
@@ -95,19 +121,22 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
 
 interface FinanceContextType {
   state: FinanceState;
-  addRevenue: (revenue: Omit<Revenue, 'id' | 'createdAt'>) => void;
-  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
-  updateRevenue: (revenue: Revenue) => void;
-  updateExpense: (expense: Expense) => void;
-  deleteRevenue: (id: string) => void;
-  deleteExpense: (id: string) => void;
+  addRevenue: (revenue: Omit<Revenue, 'id' | 'createdAt' | 'updatedAt' | 'driverId'>) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'driverId'>) => Promise<void>;
+  updateRevenue: (id: string, revenue: Partial<Revenue>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteRevenue: (id: string) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
   setFilters: (filters: FilterOptions) => void;
   setPeriod: (period: 'daily' | 'weekly' | 'monthly') => void;
   setMonthlyGoal: (goal: MonthlyGoal) => void;
-  getDashboardData: () => DashboardData;
-  getPeriodMetrics: () => PeriodMetrics;
+  getDashboardData: () => Promise<DashboardData>;
+  getPeriodMetrics: () => Promise<PeriodMetrics>;
   getFilteredRevenues: () => Revenue[];
   getFilteredExpenses: () => Expense[];
+  loadData: () => Promise<void>;
+  reloadData: () => Promise<void>; // Nova função para forçar recarregamento
+  clearError: () => void;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -126,51 +155,216 @@ interface FinanceProviderProps {
 
 export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
+  const { state: authState } = useAuth();
 
-  // Load mock data on first render
+  // Load data when authenticated
   useEffect(() => {
-    dispatch({ 
-      type: 'LOAD_DATA', 
-      payload: { 
-        revenues: mockRevenues, 
-        expenses: mockExpenses,
-        monthlyGoal: mockMonthlyGoal
-      } 
-    });
-  }, []);
+    if (authState.isAuthenticated && !authState.isLoading) {
+      loadData();
+    }
+  }, [authState.isAuthenticated, authState.isLoading]);
 
-  const addRevenue = (revenueData: Omit<Revenue, 'id' | 'createdAt'>) => {
-    const revenue: Revenue = {
-      ...revenueData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
+  // Listen for auth success events to reload data
+  useEffect(() => {
+    const handleAuthSuccess = () => {
+      loadData();
     };
-    dispatch({ type: 'ADD_REVENUE', payload: revenue });
+
+    // Adicionar listener para web (apenas se window e addEventListener existirem)
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('auth-success', handleAuthSuccess);
+      
+      return () => {
+        if (window.removeEventListener) {
+          window.removeEventListener('auth-success', handleAuthSuccess);
+        }
+      };
+    }
+  }, [authState.isAuthenticated]);
+
+  const loadData = async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      // Definir mês atual para a meta mensal
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      
+      // Tentar diferentes formatos de data para debug
+      const alternativeFormats = [
+        currentMonth, // 2024-01
+        `${now.getFullYear()}-${now.getMonth() + 1}`, // 2024-1
+        `${now.getFullYear()}-${String(now.getMonth() + 1)}`, // 2024-1
+      ];
+      
+      
+      const [revenuesResponse, expensesResponse, performanceGoalsResponse, monthlyGoalResponse] = await Promise.all([
+        apiService.getRevenues({ limit: 100 }),
+        apiService.getExpenses({ limit: 100 }),
+        apiService.getPerformanceGoals(),
+        apiService.getMonthlyGoal(currentMonth),
+      ]);
+
+      // Usar as metas de desempenho como meta mensal principal
+      let finalMonthlyGoal = null;
+      if (performanceGoalsResponse.success && performanceGoalsResponse.data) {
+        // Calcular APENAS receitas do mês atual (despesas como combustível não somam)
+        const currentMonthRevenues = revenuesResponse.data.data.filter(revenue => {
+          const revenueDate = new Date(revenue.date);
+          const revenueMonth = `${revenueDate.getFullYear()}-${String(revenueDate.getMonth() + 1).padStart(2, '0')}`;
+          return revenueMonth === currentMonth;
+        });
+        
+        // Somar apenas receitas (não despesas)
+        const currentAmount = currentMonthRevenues.reduce((sum, revenue) => sum + revenue.value, 0);
+        
+        
+        // Converter PerformanceGoals para MonthlyGoal format
+        finalMonthlyGoal = {
+          success: true,
+          data: {
+            id: performanceGoalsResponse.data.id,
+            targetAmount: performanceGoalsResponse.data.monthlyEarningsGoal,
+            currentAmount: currentAmount,
+            month: currentMonth,
+            driverId: performanceGoalsResponse.data.driverId,
+            platformBreakdowns: [],
+            createdAt: performanceGoalsResponse.data.createdAt,
+            updatedAt: performanceGoalsResponse.data.updatedAt,
+          }
+        };
+      } else if (monthlyGoalResponse.success && monthlyGoalResponse.data) {
+        // Fallback para meta mensal específica se existir
+        finalMonthlyGoal = monthlyGoalResponse;
+      }
+
+
+      dispatch({
+        type: 'LOAD_DATA',
+        payload: {
+          revenues: revenuesResponse.data.data,
+          expenses: expensesResponse.data.data,
+          monthlyGoal: finalMonthlyGoal && finalMonthlyGoal.success ? finalMonthlyGoal.data : undefined,
+        },
+      });
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to load data',
+      });
+    }
   };
 
-  const addExpense = (expenseData: Omit<Expense, 'id' | 'createdAt'>) => {
-    const expense: Expense = {
-      ...expenseData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    dispatch({ type: 'ADD_EXPENSE', payload: expense });
+  const addRevenue = async (revenueData: Omit<Revenue, 'id' | 'createdAt' | 'updatedAt' | 'driverId'>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.createRevenue(revenueData);
+      
+      if (response.success) {
+        dispatch({ type: 'ADD_REVENUE', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to add revenue',
+      });
+    }
   };
 
-  const updateRevenue = (revenue: Revenue) => {
-    dispatch({ type: 'UPDATE_REVENUE', payload: revenue });
+  const addExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'driverId'>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.createExpense(expenseData);
+      
+      if (response.success) {
+        dispatch({ type: 'ADD_EXPENSE', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to add expense',
+      });
+    }
   };
 
-  const updateExpense = (expense: Expense) => {
-    dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
+  const updateRevenue = async (id: string, revenue: Partial<Revenue>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.updateRevenue(id, revenue);
+      
+      if (response.success) {
+        dispatch({ type: 'UPDATE_REVENUE', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to update revenue',
+      });
+    }
   };
 
-  const deleteRevenue = (id: string) => {
-    dispatch({ type: 'DELETE_REVENUE', payload: id });
+  const updateExpense = async (id: string, expense: Partial<Expense>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.updateExpense(id, expense);
+      
+      if (response.success) {
+        dispatch({ type: 'UPDATE_EXPENSE', payload: response.data });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to update expense',
+      });
+    }
   };
 
-  const deleteExpense = (id: string) => {
-    dispatch({ type: 'DELETE_EXPENSE', payload: id });
+  const deleteRevenue = async (id: string) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.deleteRevenue(id);
+      
+      if (response.success) {
+        dispatch({ type: 'DELETE_REVENUE', payload: id });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to delete revenue',
+      });
+    }
+  };
+
+  const deleteExpense = async (id: string) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'CLEAR_ERROR' });
+
+      const response = await apiService.deleteExpense(id);
+      
+      if (response.success) {
+        dispatch({ type: 'DELETE_EXPENSE', payload: id });
+      }
+    } catch (error) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: error instanceof Error ? error.message : 'Failed to delete expense',
+      });
+    }
   };
 
   const setFilters = (filters: FilterOptions) => {
@@ -183,6 +377,14 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
 
   const setMonthlyGoal = (goal: MonthlyGoal) => {
     dispatch({ type: 'SET_MONTHLY_GOAL', payload: goal });
+  };
+
+  const clearError = () => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  };
+
+  const reloadData = async () => {
+    await loadData();
   };
 
   const getFilteredRevenues = (): Revenue[] => {
@@ -221,106 +423,43 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     return filtered;
   };
 
-  const getDashboardData = (): DashboardData => {
-    const filteredRevenues = getFilteredRevenues();
-    const filteredExpenses = getFilteredExpenses();
-
-    const totalRevenue = filteredRevenues.reduce((sum, revenue) => sum + revenue.value, 0);
-    const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.value, 0);
-    const netProfit = totalRevenue - totalExpenses;
-
-    // New metrics calculations
-    const totalHoursWorked = filteredRevenues.reduce((sum, revenue) => sum + (revenue.hoursWorked || 0), 0);
-    const totalKilometersRidden = filteredRevenues.reduce((sum, revenue) => sum + (revenue.kilometersRidden || 0), 0);
-    const totalTripsCount = filteredRevenues.reduce((sum, revenue) => sum + (revenue.tripsCount || 0), 0);
-    
-    const averageEarningsPerHour = totalHoursWorked > 0 ? totalRevenue / totalHoursWorked : 0;
-    const averageEarningsPerKm = totalKilometersRidden > 0 ? totalRevenue / totalKilometersRidden : 0;
-    const averageEarningsPerTrip = totalTripsCount > 0 ? totalRevenue / totalTripsCount : 0;
-    
-    // Working days count
-    const workingDays = new Set(filteredRevenues.map(r => r.date));
-    const workingDaysCount = workingDays.size;
-    const averageHoursPerPeriod = workingDaysCount > 0 ? totalHoursWorked / workingDaysCount : 0;
-
-    // Revenue by platform
-    const revenueByPlatform = filteredRevenues.reduce((acc, revenue) => {
-      const existing = acc.find((item) => item.platform === revenue.platform);
-      if (existing) {
-        existing.value += revenue.value;
-      } else {
-        acc.push({ platform: revenue.platform, value: revenue.value });
+  const getDashboardData = async (): Promise<DashboardData> => {
+    try {
+      
+      const response = await apiService.getDashboardData(state.filters);
+      
+      
+      if (response.success) {
+        return response.data;
       }
-      return acc;
-    }, [] as Array<{ platform: string; value: number }>);
-
-    // Expenses by category
-    const expensesByCategory = filteredExpenses.reduce((acc, expense) => {
-      const existing = acc.find((item) => item.category === expense.category);
-      if (existing) {
-        existing.value += expense.value;
-      } else {
-        acc.push({ category: expense.category, value: expense.value });
-      }
-      return acc;
-    }, [] as Array<{ category: string; value: number }>);
-
-    // Daily profit calculation
-    const allDates = new Set([
-      ...filteredRevenues.map((r) => r.date),
-      ...filteredExpenses.map((e) => e.date),
-    ]);
-
-    const dailyProfit = Array.from(allDates)
-      .sort()
-      .map((date) => {
-        const dayRevenue = filteredRevenues
-          .filter((r) => r.date === date)
-          .reduce((sum, r) => sum + r.value, 0);
-        const dayExpenses = filteredExpenses
-          .filter((e) => e.date === date)
-          .reduce((sum, e) => sum + e.value, 0);
-        return {
-          date,
-          revenue: dayRevenue,
-          expenses: dayExpenses,
-          profit: dayRevenue - dayExpenses,
-        };
-      });
-
-    return {
-      totalRevenue,
-      totalExpenses,
-      netProfit,
-      revenueByPlatform,
-      expensesByCategory,
-      dailyProfit,
-      totalHoursWorked,
-      totalKilometersRidden,
-      totalTripsCount,
-      averageEarningsPerHour,
-      averageEarningsPerKm,
-      averageEarningsPerTrip,
-      averageHoursPerPeriod,
-      workingDaysCount,
-    };
+      
+      throw new Error('Failed to get dashboard data');
+    } catch (error) {
+      console.error('Error getting dashboard data:', error);
+      throw error;
+    }
   };
 
-  const getPeriodMetrics = (): PeriodMetrics => {
-    const dashboardData = getDashboardData();
-    
-    return {
-      period: state.selectedPeriod,
-      averageEarnings: dashboardData.totalRevenue,
-      averageEarningsPerHour: dashboardData.averageEarningsPerHour,
-      averageEarningsPerKm: dashboardData.averageEarningsPerKm,
-      totalHoursWorked: dashboardData.totalHoursWorked,
-      averageHoursWorked: dashboardData.averageHoursPerPeriod,
-      totalKilometersRidden: dashboardData.totalKilometersRidden,
-      workingDaysCount: dashboardData.workingDaysCount,
-      totalTripsCount: dashboardData.totalTripsCount,
-      averageEarningsPerTrip: dashboardData.averageEarningsPerTrip,
-    };
+  const getPeriodMetrics = async (): Promise<PeriodMetrics> => {
+    try {
+      const dashboardData = await getDashboardData();
+      
+      return {
+        period: state.selectedPeriod,
+        averageEarnings: dashboardData.totalRevenue,
+        averageEarningsPerHour: dashboardData.averageEarningsPerHour,
+        averageEarningsPerKm: dashboardData.averageEarningsPerKm,
+        totalHoursWorked: dashboardData.totalHoursWorked,
+        averageHoursWorked: dashboardData.averageHoursPerPeriod,
+        totalKilometersRidden: dashboardData.totalKilometersRidden,
+        workingDaysCount: dashboardData.workingDaysCount,
+        totalTripsCount: dashboardData.totalTripsCount,
+        averageEarningsPerTrip: dashboardData.averageEarningsPerTrip,
+      };
+    } catch (error) {
+      console.error('Error getting period metrics:', error);
+      throw error;
+    }
   };
 
   const value: FinanceContextType = {
@@ -338,6 +477,9 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     getPeriodMetrics,
     getFilteredRevenues,
     getFilteredExpenses,
+    loadData,
+    reloadData,
+    clearError,
   };
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
