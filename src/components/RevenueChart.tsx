@@ -144,7 +144,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data, period }) => {
       
       {/* Gráfico de Linha - Tendência */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>📈 Tendência de Receitas e Gastos</Text>
+        <Text style={styles.chartTitle}>📈 Tendência de Ganhos</Text>
         <LineChart
           data={lineChartData}
           width={chartWidth}
