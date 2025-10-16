@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, Text, View, Platform } from 'react-native';
+import { TouchableOpacity, Text, View, Platform, Animated, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSubscription } from '../context/SubscriptionContext';
 import { SubscriptionModal } from './SubscriptionModal';
 
@@ -18,98 +19,165 @@ export const PremiumButton: React.FC<PremiumButtonProps> = ({
 }) => {
   const { isPremium, isLoading } = useSubscription();
   const [modalVisible, setModalVisible] = useState(false);
+  const [scaleValue] = useState(new Animated.Value(1));
 
   // Se não for iOS, não mostrar o botão
   if (Platform.OS !== 'ios') {
     return null;
   }
 
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const getTextSizeStyle = () => {
+    switch (size) {
+      case 'small':
+        return styles.textSmall;
+      case 'medium':
+        return styles.textMedium;
+      case 'large':
+        return styles.textLarge;
+      default:
+        return styles.textMedium;
+    }
+  };
+
   if (isPremium) {
     return (
-      <TouchableOpacity 
-        className={`bg-green-500 px-4 py-2 rounded-lg flex-row items-center ${className}`}
-        disabled
-      >
-        {showIcon && (
-          <Text className="text-white mr-2">✓</Text>
-        )}
-        <Text className="text-white font-semibold">
-          Premium Ativo
-        </Text>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+        <LinearGradient
+          colors={['#10b981', '#059669']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.button, getTextSizeStyle(), styles.premiumActive]}
+        >
+          <TouchableOpacity 
+            style={styles.buttonContent}
+            disabled
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+          >
+            {showIcon && (
+              <Text style={styles.icon}>✓</Text>
+            )}
+            <Text style={[styles.text, styles.textWhite, getTextSizeStyle()]}>
+              Premium Ativo
+            </Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </Animated.View>
     );
   }
 
-  const getButtonStyles = () => {
-    const baseStyles = 'rounded-lg flex-row items-center justify-center';
+  const getButtonContent = () => {
+    const buttonStyle = [styles.button, styles[size]];
     
     switch (variant) {
       case 'primary':
-        return `${baseStyles} bg-blue-500`;
+        return (
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={buttonStyle}
+          >
+            <TouchableOpacity
+              style={styles.buttonContent}
+              onPress={() => setModalVisible(true)}
+              disabled={isLoading}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              activeOpacity={0.8}
+            >
+              {showIcon && (
+                <Text style={styles.icon}>👑</Text>
+              )}
+              <Text style={[styles.text, styles.textWhite, getTextSizeStyle()]}>
+                {isLoading ? 'Carregando...' : 'Upgrade Premium'}
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        );
       case 'secondary':
-        return `${baseStyles} bg-gray-100 border border-gray-300`;
+        return (
+          <TouchableOpacity
+            style={[buttonStyle, styles.secondaryButton]}
+            onPress={() => setModalVisible(true)}
+            disabled={isLoading}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            activeOpacity={0.8}
+          >
+            {showIcon && (
+              <Text style={[styles.icon, styles.iconSecondary]}>⭐</Text>
+            )}
+            <Text style={[styles.text, styles.textSecondary, getTextSizeStyle()]}>
+              {isLoading ? 'Carregando...' : 'Upgrade Premium'}
+            </Text>
+          </TouchableOpacity>
+        );
       case 'minimal':
-        return `${baseStyles} bg-transparent`;
+        return (
+          <TouchableOpacity
+            style={[buttonStyle, styles.minimalButton]}
+            onPress={() => setModalVisible(true)}
+            disabled={isLoading}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            activeOpacity={0.8}
+          >
+            {showIcon && (
+              <Text style={[styles.icon, styles.iconMinimal]}>👑</Text>
+            )}
+            <Text style={[styles.text, styles.textMinimal, getTextSizeStyle()]}>
+              {isLoading ? 'Carregando...' : 'Upgrade Premium'}
+            </Text>
+          </TouchableOpacity>
+        );
       default:
-        return `${baseStyles} bg-blue-500`;
-    }
-  };
-
-  const getTextStyles = () => {
-    switch (variant) {
-      case 'primary':
-        return 'text-white font-semibold';
-      case 'secondary':
-        return 'text-gray-700 font-semibold';
-      case 'minimal':
-        return 'text-blue-500 font-semibold';
-      default:
-        return 'text-white font-semibold';
-    }
-  };
-
-  const getSizeStyles = () => {
-    switch (size) {
-      case 'small':
-        return 'px-3 py-1.5';
-      case 'medium':
-        return 'px-4 py-2';
-      case 'large':
-        return 'px-6 py-3';
-      default:
-        return 'px-4 py-2';
-    }
-  };
-
-  const getTextSize = () => {
-    switch (size) {
-      case 'small':
-        return 'text-sm';
-      case 'medium':
-        return 'text-base';
-      case 'large':
-        return 'text-lg';
-      default:
-        return 'text-base';
+        return (
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={buttonStyle}
+          >
+            <TouchableOpacity
+              style={styles.buttonContent}
+              onPress={() => setModalVisible(true)}
+              disabled={isLoading}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              activeOpacity={0.8}
+            >
+              {showIcon && (
+                <Text style={styles.icon}>👑</Text>
+              )}
+              <Text style={[styles.text, styles.textWhite, getTextSizeStyle()]}>
+                {isLoading ? 'Carregando...' : 'Upgrade Premium'}
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        );
     }
   };
 
   return (
     <>
-      <TouchableOpacity
-        className={`${getButtonStyles()} ${getSizeStyles()} ${className}`}
-        onPress={() => setModalVisible(true)}
-        disabled={isLoading}
-      >
-        {showIcon && (
-          <Text className={`${getTextStyles()} mr-2`}>
-            {variant === 'primary' ? '👑' : '⭐'}
-          </Text>
-        )}
-        <Text className={`${getTextStyles()} ${getTextSize()}`}>
-          {isLoading ? 'Carregando...' : 'Upgrade Premium'}
-        </Text>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+        {getButtonContent()}
+      </Animated.View>
       
       <SubscriptionModal
         visible={modalVisible}
@@ -132,10 +200,15 @@ export const PremiumStatus: React.FC<{ className?: string }> = ({ className = ''
   }
 
   return (
-    <View className={`bg-green-100 px-2 py-1 rounded-full flex-row items-center ${className}`}>
-      <Text className="text-green-700 text-xs font-semibold mr-1">✓</Text>
-      <Text className="text-green-700 text-xs font-semibold">Premium</Text>
-    </View>
+    <LinearGradient
+      colors={['#10b981', '#059669']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.statusBadge}
+    >
+      <Text style={styles.statusIcon}>✓</Text>
+      <Text style={styles.statusText}>Premium</Text>
+    </LinearGradient>
   );
 };
 
@@ -151,12 +224,17 @@ export const PremiumBadge: React.FC<{
   }
 
   return (
-    <View className={`relative ${className}`}>
+    <View style={styles.badgeContainer}>
       {children}
       {!isPremium && (
-        <View className="absolute -top-1 -right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
-          <Text className="text-white text-xs font-bold">👑</Text>
-        </View>
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.badge}
+        >
+          <Text style={styles.badgeIcon}>👑</Text>
+        </LinearGradient>
       )}
     </View>
   );
@@ -183,3 +261,154 @@ export const usePremiumFeatures = () => {
     isPremium: Platform.OS === 'ios' && isPremium
   };
 };
+
+// Estilos usando StyleSheet para melhor performance e compatibilidade
+const styles = StyleSheet.create({
+  // Estilos base do botão
+  button: {
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  
+  // Conteúdo do botão
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  
+  // Tamanhos do botão
+  small: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minHeight: 32,
+  },
+  medium: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    minHeight: 48,
+  },
+  large: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    minHeight: 56,
+  },
+  
+  // Variantes do botão
+  secondaryButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  minimalButton: {
+    backgroundColor: 'transparent',
+  },
+  premiumActive: {
+    // Estilo específico para quando premium está ativo
+  },
+  
+  // Estilos de texto
+  text: {
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  textSmall: {
+    fontSize: 12,
+  },
+  textMedium: {
+    fontSize: 14,
+  },
+  textLarge: {
+    fontSize: 16,
+  },
+  textWhite: {
+    color: '#ffffff',
+  },
+  textSecondary: {
+    color: '#374151',
+  },
+  textMinimal: {
+    color: '#3b82f6',
+  },
+  
+  // Estilos de ícone
+  icon: {
+    marginRight: 8,
+    fontSize: 18,
+    color: '#ffffff',
+  },
+  iconSecondary: {
+    color: '#6b7280',
+  },
+  iconMinimal: {
+    color: '#3b82f6',
+  },
+  
+  // Estilos do status badge
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  statusIcon: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    marginRight: 4,
+  },
+  statusText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  
+  // Estilos do badge
+  badgeContainer: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  badgeIcon: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});

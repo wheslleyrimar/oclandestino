@@ -109,16 +109,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }: AuthProv
         
         if (isAuth) {
           const profile = await authService.getStoredProfile();
+          const token = await authService.getStoredToken();
           
-          if (profile) {
+          
+          if (profile && token) {
             dispatch({ type: 'AUTH_SUCCESS', payload: profile });
           } else {
-            dispatch({ type: 'AUTH_FAILURE', payload: 'Profile not found' });
+            console.warn('Auth check failed - missing profile or token');
+            dispatch({ type: 'AUTH_FAILURE', payload: 'Profile or token not found' });
           }
         } else {
           dispatch({ type: 'AUTH_FAILURE', payload: 'Not authenticated' });
         }
       } catch (error) {
+        console.error('Auth check error:', error);
         dispatch({ type: 'AUTH_FAILURE', payload: 'Authentication check failed' });
       }
     };

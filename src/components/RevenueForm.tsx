@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFinance } from '../context/FinanceContext';
 import { Platform } from '../types';
+import { WebCompatibleDateTimePicker } from './WebCompatibleDateTimePicker';
 
 interface RevenueFormProps {
   isVisible: boolean;
@@ -25,7 +26,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
   const { addRevenue } = useFinance();
   const [formData, setFormData] = useState({
     value: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(),
     description: '',
     platform: 'Uber' as Platform,
     hoursWorked: '',
@@ -50,7 +51,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
     try {
       await addRevenue({
         value,
-        date: formData.date,
+        date: formData.date.toISOString().split('T')[0],
         description: formData.description,
         platform: formData.platform,
         hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked.replace(',', '.')) : undefined,
@@ -61,7 +62,7 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       // Reset form
       setFormData({
         value: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(),
         description: '',
         platform: 'Uber',
         hoursWorked: '',
@@ -93,11 +94,15 @@ export const RevenueForm: React.FC<RevenueFormProps> = ({
       {/* Date */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Data *</Text>
-        <TextInput
-          style={styles.input}
+        <WebCompatibleDateTimePicker
           value={formData.date}
-          onChangeText={(text) => setFormData({ ...formData, date: text })}
-          placeholder="YYYY-MM-DD"
+          mode="date"
+          onChange={(event, selectedDate) => {
+            if (selectedDate) {
+              setFormData({ ...formData, date: selectedDate });
+            }
+          }}
+          style={styles.datePicker}
         />
       </View>
 
@@ -254,6 +259,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  datePicker: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#d1d5db',

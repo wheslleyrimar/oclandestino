@@ -1,4 +1,4 @@
-# 🚗 KLANS - Gestão Financeira para Motoristas
+# 🚗 CLANS - Gestão Financeira para Motoristas
 
 Uma aplicação completa para gestão financeira de motoristas de aplicativo, desenvolvida com React Native e Expo.
 
@@ -71,8 +71,8 @@ Uma aplicação completa para gestão financeira de motoristas de aplicativo, de
 
 1. **Clone o repositório**
 ```bash
-git clone https://github.com/wheslley/oclandestino.git
-cd oclandestino
+git clone https://github.com/wheslley/clans.git
+cd clans
 ```
 
 2. **Instale as dependências**
@@ -196,7 +196,7 @@ expo build:android
 ## 📞 Suporte
 
 Para suporte e dúvidas:
-- 🐛 Issues: [GitHub Issues](https://github.com/wheslley/oclandestino/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/wheslley/clans/issues)
 
 ---
 

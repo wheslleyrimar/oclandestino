@@ -15,8 +15,8 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
-const PREMIUM_STATUS_KEY = '@klans:premium_status';
-const PURCHASE_DATA_KEY = '@klans:purchase_data';
+const PREMIUM_STATUS_KEY = '@clans:premium_status';
+const PURCHASE_DATA_KEY = '@clans:purchase_data';
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isPremium, setIsPremium] = useState(false);
@@ -47,7 +47,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Inicializar conexão com a App Store
       const initialized = await subscriptionService.initialize();
       if (!initialized) {
-        throw new Error('Failed to initialize App Store connection');
+        // Não tratar como erro crítico, apenas logar
+        setIsLoading(false);
+        return;
       }
 
       // Carregar produtos disponíveis
@@ -58,7 +60,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       await checkSubscriptionStatus();
       
     } catch (error) {
-      setError('Falha ao inicializar sistema de assinaturas');
+      console.error('Subscription initialization error:', error);
+      // Só mostrar erro se não for relacionado ao ambiente de desenvolvimento
+      if (!error.message?.includes('Expo Go') && !error.message?.includes('NitroModules')) {
+        setError('Falha ao inicializar sistema de assinaturas');
+      }
     } finally {
       setIsLoading(false);
     }

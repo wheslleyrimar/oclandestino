@@ -14,7 +14,6 @@ import ConfigurationScreen from '../screens/ConfigurationScreen';
 
 // Import custom tab bar
 import { CustomTabBar } from '../components/CustomTabBar';
-import { FloatingActionButton } from '../components/FloatingActionButton';
 
 // Import contexts
 import { useAuth } from '../context/AuthContext';
@@ -53,7 +52,6 @@ const MainTabs = () => {
           options={{ tabBarLabel: 'Config' }}
         />
       </Tab.Navigator>
-      <FloatingActionButton />
     </>
   );
 };

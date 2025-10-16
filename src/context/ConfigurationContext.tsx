@@ -30,20 +30,23 @@ const defaultProfile: DriverProfile = {
   name: 'Motorista',
   email: 'motorista@exemplo.com',
   phone: '(11) 99999-9999',
-  licenseNumber: '12345678901',
-  vehicleModel: 'Modelo do Veículo',
-  vehiclePlate: 'ABC-1234',
+  favoriteApps: [],
+  appCategories: [],
+  vehicleModel: '',
+  vehiclePlate: '',
+  vehicleStatus: undefined,
+  vehicleProtection: undefined,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 const defaultGoals: PerformanceGoals = {
   id: '1',
-  monthlyEarningsGoal: 5000,
-  dailyTripsGoal: 20,
-  weeklyHoursGoal: 40,
-  monthlyHoursGoal: 160,
-  averageEarningsPerHourGoal: 30,
-  averageEarningsPerTripGoal: 15,
-  workingDaysPerWeekGoal: 5,
+  monthlyRevenueGoal: 8000, // Meta Mensal (Faturamento)
+  monthlyNetProfitGoal: 3000, // Meta de Lucro Líquido
+  driverId: '1',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 const defaultPreferences: AppPreferences = {
@@ -145,20 +148,33 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      const [profileResponse, goalsResponse, preferencesResponse] = await Promise.all([
+      // Definir mês atual para a meta mensal
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      const [profileResponse, monthlyGoalResponse, preferencesResponse] = await Promise.all([
         apiService.getProfile(),
-        apiService.getPerformanceGoals(),
+        apiService.getMonthlyGoal(currentMonth),
         apiService.getPreferences().catch(() => null), // Optional
       ]);
 
       const configuration: ConfigurationState = {
         profile: profileResponse.success ? profileResponse.data : defaultProfile,
-        goals: goalsResponse.success ? goalsResponse.data : defaultGoals,
+        goals: monthlyGoalResponse.success && monthlyGoalResponse.data ? {
+          // Usar dados da meta mensal do endpoint correto
+          id: monthlyGoalResponse.data.id,
+          monthlyRevenueGoal: monthlyGoalResponse.data.targetAmount,
+          monthlyNetProfitGoal: 0, // Não disponível no endpoint de meta mensal
+          driverId: monthlyGoalResponse.data.driverId,
+          createdAt: monthlyGoalResponse.data.createdAt,
+          updatedAt: monthlyGoalResponse.data.updatedAt,
+        } : defaultGoals,
         preferences: preferencesResponse?.data || defaultPreferences,
       };
 
       dispatch({ type: 'LOAD_CONFIGURATION', payload: configuration });
     } catch (error) {
+      console.error('❌ ConfigurationContext: Erro ao carregar configuração:', error);
       dispatch({
         type: 'SET_ERROR',
         payload: error instanceof Error ? error.message : 'Failed to load configuration',
@@ -189,12 +205,49 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      const response = await apiService.updatePerformanceGoals(goals);
-      
-      if (response.success) {
-        dispatch({ type: 'UPDATE_GOALS', payload: response.data });
+      // Definir mês atual para a meta mensal
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;   
+
+      // Se já existe uma meta mensal, atualizar
+      if (state.goals.id) {
+        const updateData = {
+          targetAmount: goals.monthlyRevenueGoal || state.goals.monthlyRevenueGoal,
+        };
+
+        const response = await apiService.updateMonthlyGoal(state.goals.id, updateData);
+        
+        if (response.success) {
+          console.log('✅ ConfigurationContext: Meta mensal atualizada:', response.data);
+          dispatch({ type: 'UPDATE_GOALS', payload: {
+            monthlyRevenueGoal: response.data.targetAmount,
+            monthlyNetProfitGoal: goals.monthlyNetProfitGoal || state.goals.monthlyNetProfitGoal,
+          }});
+        }
+      } else {
+        // Se não existe meta mensal, criar uma nova
+        const createData = {
+          targetAmount: goals.monthlyRevenueGoal || 0,
+          month: currentMonth,
+          platformBreakdowns: [],
+        };
+
+        const response = await apiService.createMonthlyGoal(createData);
+        
+        if (response.success) {
+          console.log('✅ ConfigurationContext: Meta mensal criada:', response.data);
+          dispatch({ type: 'UPDATE_GOALS', payload: {
+            id: response.data.id,
+            monthlyRevenueGoal: response.data.targetAmount,
+            monthlyNetProfitGoal: goals.monthlyNetProfitGoal || 0,
+            driverId: response.data.driverId,
+            createdAt: response.data.createdAt,
+            updatedAt: response.data.updatedAt,
+          }});
+        }
       }
     } catch (error) {
+      console.error('❌ ConfigurationContext: Erro ao atualizar metas:', error);
       dispatch({
         type: 'SET_ERROR',
         payload: error instanceof Error ? error.message : 'Failed to update goals',

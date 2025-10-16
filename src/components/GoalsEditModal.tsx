@@ -24,19 +24,18 @@ const GoalsEditModal: React.FC<GoalsEditModalProps> = ({ visible, onClose }) => 
 
   useEffect(() => {
     if (visible) {
-      setFormData(state.goals);
+      // Garantir que temos os campos corretos, mesmo se vierem dados antigos do servidor
+      setFormData({
+        monthlyRevenueGoal: state.goals.monthlyRevenueGoal || 0,
+        monthlyNetProfitGoal: state.goals.monthlyNetProfitGoal || 0,
+      });
     }
   }, [visible, state.goals]);
 
   const handleSave = () => {
     const goals = {
-      monthlyEarningsGoal: Number(formData.monthlyEarningsGoal) || 0,
-      dailyTripsGoal: Number(formData.dailyTripsGoal) || 0,
-      weeklyHoursGoal: Number(formData.weeklyHoursGoal) || 0,
-      monthlyHoursGoal: Number(formData.monthlyHoursGoal) || 0,
-      averageEarningsPerHourGoal: Number(formData.averageEarningsPerHourGoal) || 0,
-      averageEarningsPerTripGoal: Number(formData.averageEarningsPerTripGoal) || 0,
-      workingDaysPerWeekGoal: Number(formData.workingDaysPerWeekGoal) || 0,
+      monthlyRevenueGoal: Number(formData.monthlyRevenueGoal) || 0,
+      monthlyNetProfitGoal: Number(formData.monthlyNetProfitGoal) || 0,
     };
 
     updateGoals(goals);
@@ -68,83 +67,26 @@ const GoalsEditModal: React.FC<GoalsEditModalProps> = ({ visible, onClose }) => 
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.form}>
-            <Text style={styles.sectionTitle}>Metas de Ganhos</Text>
+            <Text style={styles.sectionTitle}>Metas Financeiras</Text>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Ganhos Mensais (R$)</Text>
+              <Text style={styles.label}>Meta Mensal (Faturamento) (R$)</Text>
               <TextInput
                 style={styles.input}
-                value={formData.monthlyEarningsGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, monthlyEarningsGoal: Number(text) })}
-                placeholder="5000"
+                value={formData.monthlyRevenueGoal?.toString() || ''}
+                onChangeText={(text) => setFormData({ ...formData, monthlyRevenueGoal: Number(text) })}
+                placeholder="8000"
                 keyboardType="numeric"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Ganho por Hora (R$)</Text>
+              <Text style={styles.label}>Meta de Lucro Líquido (R$)</Text>
               <TextInput
                 style={styles.input}
-                value={formData.averageEarningsPerHourGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, averageEarningsPerHourGoal: Number(text) })}
-                placeholder="30"
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Ganho por Corrida (R$)</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.averageEarningsPerTripGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, averageEarningsPerTripGoal: Number(text) })}
-                placeholder="15"
-                keyboardType="numeric"
-              />
-            </View>
-
-            <Text style={styles.sectionTitle}>Metas de Trabalho</Text>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Corridas Diárias</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.dailyTripsGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, dailyTripsGoal: Number(text) })}
-                placeholder="20"
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Horas Semanais</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.weeklyHoursGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, weeklyHoursGoal: Number(text) })}
-                placeholder="40"
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Horas Mensais</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.monthlyHoursGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, monthlyHoursGoal: Number(text) })}
-                placeholder="160"
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Meta de Dias de Trabalho por Semana</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.workingDaysPerWeekGoal?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, workingDaysPerWeekGoal: Number(text) })}
-                placeholder="5"
+                value={formData.monthlyNetProfitGoal?.toString() || ''}
+                onChangeText={(text) => setFormData({ ...formData, monthlyNetProfitGoal: Number(text) })}
+                placeholder="3000"
                 keyboardType="numeric"
               />
             </View>

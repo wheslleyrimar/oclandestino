@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { MonthlyGoal } from '../types';
 
 interface MonthlyGoalCardProps {
@@ -9,6 +9,48 @@ interface MonthlyGoalCardProps {
 export const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ goal }) => {
   const progressPercentage = (goal.currentAmount / goal.targetAmount) * 100;
   const remainingAmount = goal.targetAmount - goal.currentAmount;
+  const isGoalAchieved = goal.currentAmount >= goal.targetAmount;
+
+  // Animações para quando a meta for atingida
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isGoalAchieved) {
+      // Animação de escala inicial
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.05,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Animação de pulso contínua
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.02,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseAnimation.start();
+
+      return () => pulseAnimation.stop();
+    }
+  }, [isGoalAchieved, scaleAnim, pulseAnim]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -27,17 +69,35 @@ export const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ goal }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={[
+        styles.container, 
+        isGoalAchieved && styles.containerSuccess,
+        isGoalAchieved && {
+          transform: [
+            { scale: scaleAnim },
+            { scale: pulseAnim }
+          ]
+        }
+      ]}
+    >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Meta Mensal</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, isGoalAchieved && styles.titleSuccess]}>
+            {isGoalAchieved ? '🎉 Meta Atingida!' : 'Meta Mensal'}
+          </Text>
+          {isGoalAchieved && (
+            <Text style={styles.successBadge}>CONQUISTADA</Text>
+          )}
+        </View>
         <Text style={styles.month}>{formatMonth(goal.month)}</Text>
       </View>
 
       {/* Progress */}
       <View style={styles.progressSection}>
         <View style={styles.amountRow}>
-          <Text style={styles.currentAmount}>
+          <Text style={[styles.currentAmount, isGoalAchieved && styles.currentAmountSuccess]}>
             {formatCurrency(goal.currentAmount)}
           </Text>
           <Text style={styles.targetAmount}>
@@ -46,10 +106,11 @@ export const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ goal }) => {
         </View>
 
         {/* Progress Bar */}
-        <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBarContainer, isGoalAchieved && styles.progressBarContainerSuccess]}>
           <View 
             style={[
               styles.progressBar, 
+              isGoalAchieved && styles.progressBarSuccess,
               { width: `${Math.min(progressPercentage, 100)}%` }
             ]} 
           />
@@ -57,12 +118,16 @@ export const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ goal }) => {
 
         {/* Progress Info */}
         <View style={styles.progressInfo}>
-          <Text style={styles.progressPercentage}>
-            {progressPercentage.toFixed(1)}% concluído
+          <Text style={[styles.progressPercentage, isGoalAchieved && styles.progressPercentageSuccess]}>
+            {isGoalAchieved ? `${progressPercentage.toFixed(1)}% SUPERADA!` : `${progressPercentage.toFixed(1)}% concluído`}
           </Text>
-          {remainingAmount > 0 && (
+          {remainingAmount > 0 ? (
             <Text style={styles.remainingAmount}>
               Faltam {formatCurrency(remainingAmount)}
+            </Text>
+          ) : (
+            <Text style={styles.exceededAmount}>
+              +{formatCurrency(Math.abs(remainingAmount))} além da meta!
             </Text>
           )}
         </View>
@@ -72,7 +137,7 @@ export const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ goal }) => {
       <View style={styles.platformSection}>
         <Text style={styles.platformTitle}>Distribuição por Plataforma</Text>
         
-        {goal.platformBreakdown.map((platform, index) => (
+        {goal.platformBreakdowns.map((platform: any, index: number) => (
           <View key={index} style={styles.platformItem}>
             <View style={styles.platformInfo}>
               <Text style={styles.platformName}>{platform.platform}</Text>
@@ -97,7 +162,7 @@ export const MonthlyGoalCard: React.FC<MonthlyGoalCardProps> = ({ goal }) => {
           </View>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -127,14 +192,41 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  containerSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderWidth: 2,
+    borderColor: '#22c55e',
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   header: {
     marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
+  },
+  titleSuccess: {
+    color: '#22c55e',
+  },
+  successBadge: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    backgroundColor: '#22c55e',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    textAlign: 'center',
   },
   month: {
     fontSize: 14,
@@ -155,6 +247,9 @@ const styles = StyleSheet.create({
     color: '#0ea5e9',
     marginRight: 8,
   },
+  currentAmountSuccess: {
+    color: '#22c55e',
+  },
   targetAmount: {
     fontSize: 16,
     color: '#6b7280',
@@ -166,10 +261,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 12,
   },
+  progressBarContainerSuccess: {
+    backgroundColor: '#dcfce7',
+  },
   progressBar: {
     height: '100%',
     backgroundColor: '#0ea5e9',
     borderRadius: 4,
+  },
+  progressBarSuccess: {
+    backgroundColor: '#22c55e',
   },
   progressInfo: {
     flexDirection: 'row',
@@ -181,9 +282,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#059669',
   },
+  progressPercentageSuccess: {
+    color: '#22c55e',
+    fontWeight: 'bold',
+  },
   remainingAmount: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  exceededAmount: {
+    fontSize: 14,
+    color: '#22c55e',
+    fontWeight: '600',
   },
   platformSection: {
     borderTopWidth: 1,

@@ -59,7 +59,11 @@ export const calculateIndicators = (
   const uniqueDays = safeRevenues.length > 0 
     ? new Set(safeRevenues.map(revenue => revenue.date)).size
     : dashboardData.workingDaysCount || 0;
-  const daysWorked = uniqueDays;
+  
+  // Para período diário, se há receitas, significa que trabalhou 1 dia
+  const daysWorked = period === 'daily' 
+    ? (safeRevenues.length > 0 ? 1 : 0)
+    : uniqueDays;
 
 
 

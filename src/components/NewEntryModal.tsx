@@ -19,8 +19,10 @@ import { useTheme } from '../context/ThemeContext';
 import { useCustomAlert } from '../hooks/useCustomAlert';
 import CustomAlert from './CustomAlert';
 import CustomConfirm from './CustomConfirm';
+import { WebCompatibleDateTimePicker } from './WebCompatibleDateTimePicker';
 
 interface FormData {
+  selectedDate: Date;
   uberRevenue: {
     value: string;
     rides: string;
@@ -57,6 +59,7 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
+    selectedDate: new Date(),
     uberRevenue: { value: '', rides: '' },
     ninetyNineRevenue: { value: '', rides: '' },
     otherAppsRevenue: { appName: '', value: '', rides: '' },
@@ -65,9 +68,24 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
     fuelExpense: { value: '' },
   });
 
-  const totalSteps = 6;
+  const totalSteps = 7;
 
   const steps = [
+    {
+      title: 'Selecionar Data',
+      icon: '📅',
+      description: 'Escolha a data para os lançamentos',
+      fields: [],
+      summary: {
+        title: 'Dicas de Data',
+        items: [
+          { label: 'Hoje', value: 'Lançamentos do dia atual' },
+          { label: 'Ontem', value: 'Lançamentos do dia anterior' },
+          { label: 'Esta semana', value: 'Lançamentos da semana' },
+          { label: 'Mês atual', value: 'Lançamentos do mês' },
+        ]
+      }
+    },
     {
       title: 'Receita da Uber',
       icon: '🚗',
@@ -316,15 +334,15 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
         return;
       }
       
-      // Formato ISO 8601 com timezone UTC
-      const today = new Date().toISOString().split('T')[0] + 'T00:00:00Z';
+      // Formato ISO 8601 com timezone UTC usando a data selecionada
+      const selectedDateISO = formData.selectedDate.toISOString().split('T')[0] + 'T00:00:00Z';
       const promises: Promise<any>[] = [];
 
       // Criar receitas
       if (formData.uberRevenue.value && parseFloat(formData.uberRevenue.value) > 0) {
         const uberRevenue: any = {
           value: parseFloat(formData.uberRevenue.value),
-          date: today,
+          date: selectedDateISO,
           description: `Receita Uber - ${formData.uberRevenue.rides || '0'} corridas`,
           platform: 'Uber',
         };
@@ -360,7 +378,7 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       if (formData.ninetyNineRevenue.value && parseFloat(formData.ninetyNineRevenue.value) > 0) {
         const ninetyNineRevenue: any = {
           value: parseFloat(formData.ninetyNineRevenue.value),
-          date: today,
+          date: selectedDateISO,
           description: `Receita 99 - ${formData.ninetyNineRevenue.rides || '0'} corridas`,
           platform: '99',
         };
@@ -396,7 +414,7 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       if (formData.otherAppsRevenue.value && parseFloat(formData.otherAppsRevenue.value) > 0) {
         const otherAppsRevenue: any = {
           value: parseFloat(formData.otherAppsRevenue.value),
-          date: today,
+          date: selectedDateISO,
           description: `Receita ${formData.otherAppsRevenue.appName || 'Outros Apps'} - ${formData.otherAppsRevenue.rides || '0'} corridas`,
           platform: formData.otherAppsRevenue.appName === 'inDrive' ? 'inDrive' : 
                    formData.otherAppsRevenue.appName === 'Cabify' ? 'Cabify' : 'Outros',
@@ -434,7 +452,7 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       if (formData.fuelExpense.value && parseFloat(formData.fuelExpense.value) > 0) {
         const fuelExpense: any = {
           value: parseFloat(formData.fuelExpense.value),
-          date: today,
+          date: selectedDateISO,
           description: 'Combustível',
           category: 'Combustível',
         };
@@ -524,6 +542,7 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
   const resetForm = () => {
     setCurrentStep(1);
     setFormData({
+      selectedDate: new Date(),
       uberRevenue: { value: '', rides: '' },
       ninetyNineRevenue: { value: '', rides: '' },
       otherAppsRevenue: { appName: '', value: '', rides: '' },
@@ -618,6 +637,27 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
 
             {/* Form Fields */}
             <View style={styles.fieldsContainer}>
+              {/* Date Picker for Step 1 */}
+              {currentStep === 1 && (
+                <View style={styles.fieldContainer}>
+                  <Text style={[styles.fieldLabel, { color: themeState.colors.text }]}>Data dos Lançamentos</Text>
+                  <WebCompatibleDateTimePicker
+                    value={formData.selectedDate}
+                    mode="date"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) {
+                        setFormData({ ...formData, selectedDate });
+                      }
+                    }}
+                    style={[styles.datePicker, { 
+                      backgroundColor: themeState.colors.surface,
+                      borderColor: themeState.colors.border
+                    }]}
+                  />
+                </View>
+              )}
+              
+              {/* Regular Fields */}
               {currentStepData.fields.map((field, index) => (
                 <View key={index} style={styles.fieldContainer}>
                   <Text style={[styles.fieldLabel, { color: themeState.colors.text }]}>{field.label}</Text>
@@ -862,6 +902,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   fieldInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  datePicker: {
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,

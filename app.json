@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "KLANS",
-    "slug": "klans",
+    "name": "CLANS",
+    "slug": "clans",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.klans.finance",
+      "bundleIdentifier": "com.clans.finance",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSUserTrackingUsageDescription": "Este app usa dados para personalizar sua experiência de assinatura premium.",
@@ -31,7 +31,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.klans.finance"
+      "package": "com.clans.finance"
     },
     "web": {
       "favicon": "./assets/favicon.png",

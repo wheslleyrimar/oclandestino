@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFinance } from '../context/FinanceContext';
 import { ExpenseCategory } from '../types';
+import { WebCompatibleDateTimePicker } from './WebCompatibleDateTimePicker';
 
 interface ExpenseFormProps {
   isVisible: boolean;
@@ -25,7 +26,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const { addExpense } = useFinance();
   const [formData, setFormData] = useState({
     value: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(),
     description: '',
     category: 'Combustível' as ExpenseCategory,
   });
@@ -54,7 +55,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     try {
       await addExpense({
         value,
-        date: formData.date,
+        date: formData.date.toISOString().split('T')[0],
         description: formData.description,
         category: formData.category,
       });
@@ -62,7 +63,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       // Reset form
       setFormData({
         value: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(),
         description: '',
         category: 'Combustível',
       });
@@ -103,11 +104,15 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       {/* Date */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Data *</Text>
-        <TextInput
-          style={styles.input}
+        <WebCompatibleDateTimePicker
           value={formData.date}
-          onChangeText={(text) => setFormData({ ...formData, date: text })}
-          placeholder="YYYY-MM-DD"
+          mode="date"
+          onChange={(event, selectedDate) => {
+            if (selectedDate) {
+              setFormData({ ...formData, date: selectedDate });
+            }
+          }}
+          style={styles.datePicker}
         />
       </View>
 
@@ -231,6 +236,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  datePicker: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#d1d5db',

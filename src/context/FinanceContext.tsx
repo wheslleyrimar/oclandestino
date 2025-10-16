@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { Revenue, Expense, DashboardData, FilterOptions, MonthlyGoal, PeriodMetrics } from '../types';
+import { Revenue, Expense, DashboardData, FilterOptions, MonthlyGoal, PeriodMetrics, MonthlyGoalHistory } from '../types';
 import { apiService } from '../services/apiService';
 import { useAuth } from './AuthContext';
 
@@ -8,9 +8,11 @@ interface FinanceState {
   expenses: Expense[];
   filters: FilterOptions;
   monthlyGoal: MonthlyGoal | null;
+  monthlyGoalHistory: MonthlyGoalHistory[];
   selectedPeriod: 'daily' | 'weekly' | 'monthly';
   isLoading: boolean;
   error: string | null;
+  lastUpdated: number; // Timestamp da última atualização
 }
 
 type FinanceAction =
@@ -22,20 +24,25 @@ type FinanceAction =
   | { type: 'DELETE_EXPENSE'; payload: string }
   | { type: 'SET_FILTERS'; payload: FilterOptions }
   | { type: 'SET_PERIOD'; payload: 'daily' | 'weekly' | 'monthly' }
-  | { type: 'SET_MONTHLY_GOAL'; payload: MonthlyGoal }
-  | { type: 'LOAD_DATA'; payload: { revenues: Revenue[]; expenses: Expense[]; monthlyGoal?: MonthlyGoal } }
+  | { type: 'SET_MONTHLY_GOAL'; payload: MonthlyGoal | null }
+  | { type: 'SET_MONTHLY_GOAL_HISTORY'; payload: MonthlyGoalHistory[] }
+  | { type: 'ADD_MONTHLY_GOAL_TO_HISTORY'; payload: MonthlyGoalHistory }
+  | { type: 'LOAD_DATA'; payload: { revenues: Revenue[]; expenses: Expense[]; monthlyGoal?: MonthlyGoal; monthlyGoalHistory?: MonthlyGoalHistory[] } }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CLEAR_ERROR' };
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'UPDATE_TIMESTAMP' };
 
 const initialState: FinanceState = {
   revenues: [],
   expenses: [],
   filters: {},
   monthlyGoal: null,
+  monthlyGoalHistory: [],
   selectedPeriod: 'monthly',
   isLoading: false,
   error: null,
+  lastUpdated: Date.now(),
 };
 
 const financeReducer = (state: FinanceState, action: FinanceAction): FinanceState => {
@@ -44,11 +51,13 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
       return {
         ...state,
         revenues: [...state.revenues, action.payload],
+        lastUpdated: Date.now(),
       };
     case 'ADD_EXPENSE':
       return {
         ...state,
         expenses: [...state.expenses, action.payload],
+        lastUpdated: Date.now(),
       };
     case 'UPDATE_REVENUE':
       return {
@@ -56,6 +65,7 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
         revenues: state.revenues.map((revenue) =>
           revenue.id === action.payload.id ? action.payload : revenue
         ),
+        lastUpdated: Date.now(),
       };
     case 'UPDATE_EXPENSE':
       return {
@@ -63,16 +73,19 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
         expenses: state.expenses.map((expense) =>
           expense.id === action.payload.id ? action.payload : expense
         ),
+        lastUpdated: Date.now(),
       };
     case 'DELETE_REVENUE':
       return {
         ...state,
         revenues: state.revenues.filter((revenue) => revenue.id !== action.payload),
+        lastUpdated: Date.now(),
       };
     case 'DELETE_EXPENSE':
       return {
         ...state,
         expenses: state.expenses.filter((expense) => expense.id !== action.payload),
+        lastUpdated: Date.now(),
       };
     case 'SET_FILTERS':
       return {
@@ -89,12 +102,23 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
         ...state,
         monthlyGoal: action.payload,
       };
+    case 'SET_MONTHLY_GOAL_HISTORY':
+      return {
+        ...state,
+        monthlyGoalHistory: action.payload,
+      };
+    case 'ADD_MONTHLY_GOAL_TO_HISTORY':
+      return {
+        ...state,
+        monthlyGoalHistory: [...state.monthlyGoalHistory, action.payload],
+      };
     case 'LOAD_DATA':
       return {
         ...state,
         revenues: action.payload.revenues,
         expenses: action.payload.expenses,
         monthlyGoal: action.payload.monthlyGoal || state.monthlyGoal,
+        monthlyGoalHistory: action.payload.monthlyGoalHistory || state.monthlyGoalHistory,
         isLoading: false,
         error: null,
       };
@@ -114,6 +138,11 @@ const financeReducer = (state: FinanceState, action: FinanceAction): FinanceStat
         ...state,
         error: null,
       };
+    case 'UPDATE_TIMESTAMP':
+      return {
+        ...state,
+        lastUpdated: Date.now(),
+      };
     default:
       return state;
   }
@@ -129,7 +158,10 @@ interface FinanceContextType {
   deleteExpense: (id: string) => Promise<void>;
   setFilters: (filters: FilterOptions) => void;
   setPeriod: (period: 'daily' | 'weekly' | 'monthly') => void;
-  setMonthlyGoal: (goal: MonthlyGoal) => void;
+  setMonthlyGoal: (goal: MonthlyGoal | null) => void;
+  getMonthlyGoalHistory: () => MonthlyGoalHistory[];
+  addMonthlyGoalToHistory: (goal: MonthlyGoalHistory) => void;
+  checkAndResetMonthlyGoal: () => Promise<void>;
   getDashboardData: () => Promise<DashboardData>;
   getPeriodMetrics: () => Promise<PeriodMetrics>;
   getFilteredRevenues: () => Revenue[];
@@ -137,6 +169,7 @@ interface FinanceContextType {
   loadData: () => Promise<void>;
   reloadData: () => Promise<void>; // Nova função para forçar recarregamento
   clearError: () => void;
+  updateTimestamp: () => void; // Função para atualizar timestamp
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -191,53 +224,23 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
+      console.log('🔍 Carregando meta mensal para o mês:', currentMonth);
       
-      // Tentar diferentes formatos de data para debug
-      const alternativeFormats = [
-        currentMonth, // 2024-01
-        `${now.getFullYear()}-${now.getMonth() + 1}`, // 2024-1
-        `${now.getFullYear()}-${String(now.getMonth() + 1)}`, // 2024-1
-      ];
-      
-      
-      const [revenuesResponse, expensesResponse, performanceGoalsResponse, monthlyGoalResponse] = await Promise.all([
+      const [revenuesResponse, expensesResponse, monthlyGoalResponse] = await Promise.all([
         apiService.getRevenues({ limit: 100 }),
         apiService.getExpenses({ limit: 100 }),
-        apiService.getPerformanceGoals(),
         apiService.getMonthlyGoal(currentMonth),
       ]);
 
-      // Usar as metas de desempenho como meta mensal principal
+      console.log('📊 Resposta da meta mensal:', monthlyGoalResponse);
+
+      // Usar a meta mensal do endpoint correto
       let finalMonthlyGoal = null;
-      if (performanceGoalsResponse.success && performanceGoalsResponse.data) {
-        // Calcular APENAS receitas do mês atual (despesas como combustível não somam)
-        const currentMonthRevenues = revenuesResponse.data.data.filter(revenue => {
-          const revenueDate = new Date(revenue.date);
-          const revenueMonth = `${revenueDate.getFullYear()}-${String(revenueDate.getMonth() + 1).padStart(2, '0')}`;
-          return revenueMonth === currentMonth;
-        });
-        
-        // Somar apenas receitas (não despesas)
-        const currentAmount = currentMonthRevenues.reduce((sum, revenue) => sum + revenue.value, 0);
-        
-        
-        // Converter PerformanceGoals para MonthlyGoal format
-        finalMonthlyGoal = {
-          success: true,
-          data: {
-            id: performanceGoalsResponse.data.id,
-            targetAmount: performanceGoalsResponse.data.monthlyEarningsGoal,
-            currentAmount: currentAmount,
-            month: currentMonth,
-            driverId: performanceGoalsResponse.data.driverId,
-            platformBreakdowns: [],
-            createdAt: performanceGoalsResponse.data.createdAt,
-            updatedAt: performanceGoalsResponse.data.updatedAt,
-          }
-        };
-      } else if (monthlyGoalResponse.success && monthlyGoalResponse.data) {
-        // Fallback para meta mensal específica se existir
+      if (monthlyGoalResponse.success && monthlyGoalResponse.data) {
         finalMonthlyGoal = monthlyGoalResponse;
+        console.log('✅ Meta mensal carregada:', finalMonthlyGoal.data);
+      } else {
+        console.log('❌ Meta mensal não encontrada ou erro:', monthlyGoalResponse.message);
       }
 
 
@@ -268,6 +271,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       
       if (response.success) {
         dispatch({ type: 'ADD_REVENUE', payload: response.data });
+        // Atualizar meta mensal localmente após adicionar receita
+        updateMonthlyGoalLocally();
       }
     } catch (error) {
       dispatch({
@@ -304,6 +309,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       
       if (response.success) {
         dispatch({ type: 'UPDATE_REVENUE', payload: response.data });
+        // Atualizar meta mensal localmente após atualizar receita
+        updateMonthlyGoalLocally();
       }
     } catch (error) {
       dispatch({
@@ -340,6 +347,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       
       if (response.success) {
         dispatch({ type: 'DELETE_REVENUE', payload: id });
+        // Atualizar meta mensal localmente após deletar receita
+        updateMonthlyGoalLocally();
       }
     } catch (error) {
       dispatch({
@@ -375,7 +384,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     dispatch({ type: 'SET_PERIOD', payload: period });
   };
 
-  const setMonthlyGoal = (goal: MonthlyGoal) => {
+  const setMonthlyGoal = (goal: MonthlyGoal | null) => {
     dispatch({ type: 'SET_MONTHLY_GOAL', payload: goal });
   };
 
@@ -462,6 +471,88 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     }
   };
 
+  const updateTimestamp = () => {
+    dispatch({ type: 'UPDATE_TIMESTAMP' });
+  };
+
+  // Função para calcular o valor atual da meta mensal baseado nas receitas do mês atual
+  const calculateCurrentGoalAmount = (): number => {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Filtrar receitas do mês atual
+    const currentMonthRevenues = state.revenues.filter(revenue => {
+      const revenueDate = new Date(revenue.date);
+      const revenueMonth = `${revenueDate.getFullYear()}-${String(revenueDate.getMonth() + 1).padStart(2, '0')}`;
+      return revenueMonth === currentMonth;
+    });
+    
+    // Somar todas as receitas do mês atual
+    return currentMonthRevenues.reduce((sum, revenue) => sum + revenue.value, 0);
+  };
+
+  // Função para atualizar apenas localmente (sem API)
+  const updateMonthlyGoalLocally = () => {
+    if (!state.monthlyGoal) return;
+    
+    const currentAmount = calculateCurrentGoalAmount();
+    
+    // Se o valor atual é diferente do valor armazenado na meta, atualizar localmente
+    if (currentAmount !== state.monthlyGoal.currentAmount) {
+      console.log('🔄 Atualizando meta mensal apenas localmente:', {
+        goalId: state.monthlyGoal.id,
+        currentAmount,
+        previousAmount: state.monthlyGoal.currentAmount
+      });
+      
+      const updatedGoal = {
+        ...state.monthlyGoal,
+        currentAmount: currentAmount
+      };
+      
+      dispatch({ type: 'SET_MONTHLY_GOAL', payload: updatedGoal });
+    }
+  };
+
+  const getMonthlyGoalHistory = () => {
+    return state.monthlyGoalHistory;
+  };
+
+  const addMonthlyGoalToHistory = (goal: MonthlyGoalHistory) => {
+    dispatch({ type: 'ADD_MONTHLY_GOAL_TO_HISTORY', payload: goal });
+  };
+
+  const checkAndResetMonthlyGoal = async () => {
+    if (!state.monthlyGoal) return;
+
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const goalMonth = state.monthlyGoal.month;
+
+    // Se estamos em um mês diferente da meta atual, arquivar a meta anterior
+    if (goalMonth !== currentMonth) {
+      const historyEntry: MonthlyGoalHistory = {
+        id: `history-${goalMonth}-${state.monthlyGoal.id}`,
+        month: goalMonth,
+        targetAmount: state.monthlyGoal.targetAmount,
+        achievedAmount: state.monthlyGoal.currentAmount,
+        percentage: (state.monthlyGoal.currentAmount / state.monthlyGoal.targetAmount) * 100,
+        wasAchieved: state.monthlyGoal.currentAmount >= state.monthlyGoal.targetAmount,
+        driverId: state.monthlyGoal.driverId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      addMonthlyGoalToHistory(historyEntry);
+      
+      // Zerar a meta atual para o novo mês
+      dispatch({ type: 'SET_MONTHLY_GOAL', payload: null });
+      
+      // Recarregar dados para criar nova meta baseada nas metas de desempenho
+      await loadData();
+    }
+  };
+
   const value: FinanceContextType = {
     state,
     addRevenue,
@@ -473,6 +564,9 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setFilters,
     setPeriod,
     setMonthlyGoal,
+    getMonthlyGoalHistory,
+    addMonthlyGoalToHistory,
+    checkAndResetMonthlyGoal,
     getDashboardData,
     getPeriodMetrics,
     getFilteredRevenues,
@@ -480,6 +574,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     loadData,
     reloadData,
     clearError,
+    updateTimestamp,
   };
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;

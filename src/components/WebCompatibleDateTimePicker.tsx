@@ -23,7 +23,7 @@ export const WebCompatibleDateTimePicker: React.FC<WebCompatibleDateTimePickerPr
 }) => {
   const [showPicker, setShowPicker] = useState(false);
 
-  // Para web, usar um modal com DateTimePicker
+  // Para web, usar um modal com input HTML nativo
   if (Platform.OS === 'web') {
     const handleWebDateChange = (event: any, selectedDate?: Date) => {
       setShowPicker(false);
@@ -51,6 +51,37 @@ export const WebCompatibleDateTimePicker: React.FC<WebCompatibleDateTimePickerPr
         default:
           return formatDate(value);
       }
+    };
+
+    const formatDateForInput = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const formatTimeForInput = (date: Date) => {
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    const handleInputChange = (inputValue: string) => {
+      let newDate: Date;
+      
+      if (mode === 'date') {
+        newDate = new Date(inputValue + 'T00:00:00');
+      } else if (mode === 'time') {
+        const [hours, minutes] = inputValue.split(':');
+        newDate = new Date(value);
+        newDate.setHours(parseInt(hours), parseInt(minutes));
+      } else {
+        // datetime mode
+        const [datePart, timePart] = inputValue.split('T');
+        newDate = new Date(datePart + 'T' + timePart);
+      }
+      
+      onChange({ type: 'set' }, newDate);
     };
 
     return (
@@ -84,15 +115,43 @@ export const WebCompatibleDateTimePicker: React.FC<WebCompatibleDateTimePickerPr
                 </TouchableOpacity>
               </View>
               
-              <DateTimePicker
-                value={value}
-                mode={mode}
-                display="default"
-                onChange={handleWebDateChange}
-                maximumDate={maximumDate}
-                minimumDate={minimumDate}
-                style={styles.picker}
-              />
+              <View style={styles.pickerContainer}>
+                {mode === 'date' ? (
+                  <input
+                    type="date"
+                    value={formatDateForInput(value)}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    style={styles.webInput}
+                    max={maximumDate ? formatDateForInput(maximumDate) : undefined}
+                    min={minimumDate ? formatDateForInput(minimumDate) : undefined}
+                  />
+                ) : mode === 'time' ? (
+                  <input
+                    type="time"
+                    value={formatTimeForInput(value)}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    style={styles.webInput}
+                  />
+                ) : (
+                  <input
+                    type="datetime-local"
+                    value={formatDateForInput(value) + 'T' + formatTimeForInput(value)}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    style={styles.webInput}
+                    max={maximumDate ? formatDateForInput(maximumDate) + 'T' + formatTimeForInput(maximumDate) : undefined}
+                    min={minimumDate ? formatDateForInput(minimumDate) + 'T' + formatTimeForInput(minimumDate) : undefined}
+                  />
+                )}
+              </View>
+              
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.confirmButton, { backgroundColor: '#3b82f6' }]}
+                  onPress={() => setShowPicker(false)}
+                >
+                  <Text style={styles.confirmButtonText}>Confirmar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -160,7 +219,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#6b7280',
   },
-  picker: {
-    alignSelf: 'center',
+  pickerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+    width: '100%',
+    marginBottom: 20,
+  },
+  webInput: {
+    width: '100%',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    fontSize: 16,
+    backgroundColor: 'white',
+    color: '#374151',
+  },
+  buttonContainer: {
+    alignItems: 'center',
+  },
+  confirmButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

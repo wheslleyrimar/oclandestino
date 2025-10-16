@@ -23,7 +23,7 @@ import { EditTransactionModal } from '../components/EditTransactionModal';
 import { Revenue, Expense } from '../types';
 
 const TransactionsScreen: React.FC = () => {
-  const { getFilteredRevenues, getFilteredExpenses, loadData } = useFinance();
+  const { getFilteredRevenues, getFilteredExpenses, loadData, setFilters } = useFinance();
   const { state: themeState } = useTheme();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'all' | 'revenues' | 'expenses'>('all');
@@ -34,8 +34,10 @@ const TransactionsScreen: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<((Revenue | Expense) & { type: 'revenue' | 'expense' }) | null>(null);
 
-  // Carregar dados quando a tela for montada
+  // Carregar dados quando a tela for montada e limpar filtros para mostrar todos os itens
   useEffect(() => {
+    // Limpar filtros para mostrar todos os lançamentos
+    setFilters({});
     loadData();
   }, []);
 
@@ -90,7 +92,7 @@ const TransactionsScreen: React.FC = () => {
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
-              <Ionicons name="list-outline" size={24} color={themeState.colors.text} />
+              <Ionicons name="list-outline" size={20} color="#ffffff" />
             </View>
             <View>
               <Text style={styles.title}>Lançamentos</Text>
@@ -218,10 +220,16 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
     borderBottomColor: colors.border,
+    paddingTop: Platform.OS === 'ios' ? 20 : 15,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTop: {
     flexDirection: 'row',
@@ -235,23 +243,29 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.text,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+    fontWeight: '500',
+    opacity: 0.8,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -331,7 +345,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     textAlign: 'center',
   },
   bottomSpacing: {
-    height: 120,
+    height: Platform.OS === 'ios' ? 150 : 140,
   },
 });
 

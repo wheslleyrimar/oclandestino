@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConfiguration } from '../context/ConfigurationContext';
@@ -65,7 +67,11 @@ const ConfigurationScreen = () => {
       {/* Profile Header Card */}
       <View style={styles.profileHeaderCard}>
         <View style={styles.profileAvatar}>
-          <Ionicons name="person-outline" size={20} color="#6b7280" />
+          {state.profile.avatar ? (
+            <Image source={{ uri: state.profile.avatar }} style={styles.profileAvatarImage} />
+          ) : (
+            <Ionicons name="person-outline" size={20} color="#6b7280" />
+          )}
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{state.profile.name}</Text>
@@ -95,11 +101,13 @@ const ConfigurationScreen = () => {
           
           <View style={styles.infoCard}>
             <View style={styles.infoCardIcon}>
-              <Text style={styles.infoCardIconText}>🆔</Text>
+              <Text style={styles.infoCardIconText}>📱</Text>
             </View>
             <View style={styles.infoCardContent}>
-              <Text style={styles.infoCardLabel}>{t('configuration.license')}</Text>
-              <Text style={styles.infoCardValue}>{state.profile.licenseNumber}</Text>
+              <Text style={styles.infoCardLabel}>Aplicativos Favoritos</Text>
+              <Text style={styles.infoCardValue}>
+                {state.profile.favoriteApps?.join(', ') || 'Nenhum selecionado'}
+              </Text>
             </View>
           </View>
         </View>
@@ -125,9 +133,47 @@ const ConfigurationScreen = () => {
             </View>
             <View style={styles.infoCardContent}>
               <Text style={styles.infoCardLabel}>{t('configuration.vehiclePlate')}</Text>
-              <Text style={styles.infoCardValue}>{state.profile.vehiclePlate}</Text>
+              <Text style={styles.infoCardValue}>{state.profile.vehiclePlate || 'Não informado'}</Text>
             </View>
           </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardIcon}>
+              <Text style={styles.infoCardIconText}>📋</Text>
+            </View>
+            <View style={styles.infoCardContent}>
+              <Text style={styles.infoCardLabel}>Categorias do App</Text>
+              <Text style={styles.infoCardValue}>
+                {state.profile.appCategories?.length > 0 
+                  ? state.profile.appCategories.join(', ') 
+                  : 'Não informado'
+                }
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardIcon}>
+              <Text style={styles.infoCardIconText}>💰</Text>
+            </View>
+            <View style={styles.infoCardContent}>
+              <Text style={styles.infoCardLabel}>Status do Veículo</Text>
+              <Text style={styles.infoCardValue}>{state.profile.vehicleStatus || 'Não informado'}</Text>
+            </View>
+          </View>
+
+          {/* Mostrar proteção apenas se o veículo for próprio */}
+          {state.profile.vehicleStatus === 'Próprio' && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardIcon}>
+                <Text style={styles.infoCardIconText}>🛡️</Text>
+              </View>
+              <View style={styles.infoCardContent}>
+                <Text style={styles.infoCardLabel}>Proteção do Veículo</Text>
+                <Text style={styles.infoCardValue}>{state.profile.vehicleProtection || 'Não informado'}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -152,83 +198,27 @@ const ConfigurationScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Earnings Goals */}
+      {/* Financial Goals */}
       <View style={styles.goalsSection}>
-        <Text style={styles.sectionTitle}>{t('configuration.earningsGoals')}</Text>
+        <Text style={styles.sectionTitle}>Metas Financeiras</Text>
         <View style={styles.goalsCards}>
           <View style={styles.goalCard}>
             <View style={styles.goalCardIcon}>
               <Text style={styles.goalCardIconText}>💰</Text>
             </View>
             <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>{t('configuration.monthlyEarningsGoal')}</Text>
-              <Text style={styles.goalCardValue}>R$ {state.goals.monthlyEarningsGoal.toLocaleString()}</Text>
+              <Text style={styles.goalCardLabel}>Meta Mensal (Faturamento)</Text>
+              <Text style={styles.goalCardValue}>R$ {state.goals.monthlyRevenueGoal.toLocaleString()}</Text>
             </View>
           </View>
           
           <View style={styles.goalCard}>
             <View style={styles.goalCardIcon}>
-              <Text style={styles.goalCardIconText}>⏱️</Text>
+              <Text style={styles.goalCardIconText}>📈</Text>
             </View>
             <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>{t('configuration.averageEarningsPerHourGoal')}</Text>
-              <Text style={styles.goalCardValue}>R$ {state.goals.averageEarningsPerHourGoal}/h</Text>
-            </View>
-          </View>
-          
-          <View style={styles.goalCard}>
-            <View style={styles.goalCardIcon}>
-              <Text style={styles.goalCardIconText}>🎯</Text>
-            </View>
-            <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Ganho por Corrida</Text>
-              <Text style={styles.goalCardValue}>R$ {state.goals.averageEarningsPerTripGoal}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Work Goals */}
-      <View style={styles.goalsSection}>
-        <Text style={styles.sectionTitle}>Metas de Trabalho</Text>
-        <View style={styles.goalsCards}>
-          <View style={styles.goalCard}>
-            <View style={styles.goalCardIcon}>
-              <Text style={styles.goalCardIconText}>🚗</Text>
-            </View>
-            <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Corridas Diárias</Text>
-              <Text style={styles.goalCardValue}>{state.goals.dailyTripsGoal} corridas</Text>
-            </View>
-          </View>
-          
-          <View style={styles.goalCard}>
-            <View style={styles.goalCardIcon}>
-              <Text style={styles.goalCardIconText}>⏰</Text>
-            </View>
-            <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Horas Semanais</Text>
-              <Text style={styles.goalCardValue}>{state.goals.weeklyHoursGoal}h</Text>
-            </View>
-          </View>
-          
-          <View style={styles.goalCard}>
-            <View style={styles.goalCardIcon}>
-              <Text style={styles.goalCardIconText}>📅</Text>
-            </View>
-            <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Horas Mensais</Text>
-              <Text style={styles.goalCardValue}>{state.goals.monthlyHoursGoal}h</Text>
-            </View>
-          </View>
-          
-          <View style={styles.goalCard}>
-            <View style={styles.goalCardIcon}>
-              <Text style={styles.goalCardIconText}>📊</Text>
-            </View>
-            <View style={styles.goalCardContent}>
-              <Text style={styles.goalCardLabel}>Dias por Semana</Text>
-              <Text style={styles.goalCardValue}>{state.goals.workingDaysPerWeekGoal} dias</Text>
+              <Text style={styles.goalCardLabel}>Meta de Lucro Líquido</Text>
+              <Text style={styles.goalCardValue}>R$ {state.goals.monthlyNetProfitGoal.toLocaleString()}</Text>
             </View>
           </View>
         </View>
@@ -435,7 +425,7 @@ const ConfigurationScreen = () => {
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
-              <Ionicons name="settings-outline" size={24} color={themeState.colors.text} />
+              <Ionicons name="settings-outline" size={20} color="#ffffff" />
             </View>
             <View>
               <Text style={styles.title}>{t('configuration.title')}</Text>
@@ -527,10 +517,16 @@ const createStyles = (colors: any) => StyleSheet.create({
   // Header
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
     borderBottomColor: colors.border,
+    paddingTop: Platform.OS === 'ios' ? 20 : 15,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTop: {
     flexDirection: 'row',
@@ -544,23 +540,29 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.text,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+    fontWeight: '500',
+    opacity: 0.8,
   },
 
   // Modern Tab Navigation
@@ -653,6 +655,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  profileAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
   },
   profileAvatarText: {
     fontSize: 20,
@@ -978,7 +986,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
 
   bottomSpacing: {
-    height: 80,
+    height: Platform.OS === 'ios' ? 150 : 140,
   },
   logoutSection: {
     marginTop: 24,

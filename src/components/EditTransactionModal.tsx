@@ -72,43 +72,169 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
     }
   };
 
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    // Validação básica obrigatória
+    if (!formData.description.trim()) {
+      errors.push('Descrição é obrigatória');
+    }
+
+    if (!formData.value || parseFloat(formData.value) <= 0) {
+      errors.push('Valor deve ser maior que zero');
+    }
+
+    // Validações específicas para receitas
+    if (transaction?.type === 'revenue') {
+      if (!formData.platform) {
+        errors.push('Plataforma é obrigatória');
+      }
+      
+      // Validações para campos opcionais (só validar se preenchidos)
+      if (formData.hoursWorked && formData.hoursWorked.trim()) {
+        const hours = parseFloat(formData.hoursWorked);
+        if (isNaN(hours) || hours <= 0) {
+          errors.push('Horas trabalhadas devem ser um número maior que zero');
+        }
+      }
+      
+      if (formData.kilometersRidden && formData.kilometersRidden.trim()) {
+        const km = parseFloat(formData.kilometersRidden);
+        if (isNaN(km) || km <= 0) {
+          errors.push('Quilômetros rodados devem ser um número maior que zero');
+        }
+      }
+      
+      if (formData.tripsCount && formData.tripsCount.trim()) {
+        const trips = parseInt(formData.tripsCount);
+        if (isNaN(trips) || trips <= 0) {
+          errors.push('Número de corridas deve ser um número inteiro maior que zero');
+        }
+      }
+    }
+
+    // Validações específicas para despesas
+    if (transaction?.type === 'expense') {
+      if (!formData.category) {
+        errors.push('Categoria é obrigatória');
+      }
+    }
+
+    return errors;
+  };
+
   const handleSave = async () => {
     if (!transaction) return;
+
+    // Validar formulário
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      Alert.alert('Erro de Validação', validationErrors.join('\n'));
+      return;
+    }
 
     try {
       setIsLoading(true);
 
-      const updateData = {
-        description: formData.description,
-        value: parseFloat(formData.value),
-        date: formData.date.toISOString().split('T')[0],
-      };
+      // Preparar dados de atualização seguindo as diretrizes da API
+      const updateData: any = {};
+
+      // Campos obrigatórios sempre devem ser enviados com validação rigorosa
+      updateData.description = formData.description.trim();
+      
+      // Garantir que o valor seja um número válido
+      const value = parseFloat(formData.value);
+      if (isNaN(value) || value <= 0) {
+        throw new Error('Valor inválido');
+      }
+      updateData.value = value;
+      
+      // Garantir que a data esteja no formato ISO string correto
+      updateData.date = formData.date.toISOString();
 
       if (transaction.type === 'revenue') {
-        const revenueData = {
-          ...updateData,
-          platform: formData.platform,
-          hoursWorked: formData.hoursWorked ? parseFloat(formData.hoursWorked) : undefined,
-          kilometersRidden: formData.kilometersRidden ? parseFloat(formData.kilometersRidden) : undefined,
-          tripsCount: formData.tripsCount ? parseInt(formData.tripsCount) : undefined,
-        };
+        // Campos específicos de receita
+        if (!formData.platform || formData.platform.trim() === '') {
+          throw new Error('Plataforma é obrigatória');
+        }
+        
+        // Validar plataforma contra valores aceitos
+        const validPlatforms = ['Uber', '99', 'inDrive', 'Cabify', 'Outros'];
+        const platform = formData.platform.trim();
+        if (!validPlatforms.includes(platform)) {
+          throw new Error(`Plataforma inválida. Valores aceitos: ${validPlatforms.join(', ')}`);
+        }
+        updateData.platform = platform;
+        
+        // Campos opcionais - só enviar se preenchidos e válidos
+        if (formData.hoursWorked && formData.hoursWorked.trim()) {
+          const hours = parseFloat(formData.hoursWorked);
+          if (!isNaN(hours) && hours > 0) {
+            updateData.hoursWorked = hours;
+          }
+        }
+        
+        if (formData.kilometersRidden && formData.kilometersRidden.trim()) {
+          const km = parseFloat(formData.kilometersRidden);
+          if (!isNaN(km) && km > 0) {
+            updateData.kilometersRidden = km;
+          }
+        }
+        
+        if (formData.tripsCount && formData.tripsCount.trim()) {
+          const trips = parseInt(formData.tripsCount);
+          if (!isNaN(trips) && trips > 0) {
+            updateData.tripsCount = trips;
+          }
+        }
 
-        await apiService.updateRevenue(transaction.id, revenueData);
+        await apiService.updateRevenue(transaction.id, updateData);
       } else {
-        const expenseData = {
-          ...updateData,
-          category: formData.category,
-        };
+        // Campos específicos de despesa
+        if (!formData.category || formData.category.trim() === '') {
+          throw new Error('Categoria é obrigatória');
+        }
+        
+        // Validar categoria contra valores aceitos
+        const validCategories = ['Combustível', 'Manutenção', 'Alimentação', 'Pedágio', 'Estacionamento', 'Outros'];
+        const category = formData.category.trim();
+        if (!validCategories.includes(category)) {
+          throw new Error(`Categoria inválida. Valores aceitos: ${validCategories.join(', ')}`);
+        }
+        updateData.category = category;
 
-        await apiService.updateExpense(transaction.id, expenseData);
+        await apiService.updateExpense(transaction.id, updateData);
       }
 
       Alert.alert('Sucesso', 'Lançamento atualizado com sucesso!');
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error('Erro ao atualizar lançamento:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar o lançamento. Tente novamente.');
+    } catch (error: any) {
+      console.error('Erro ao atualizar lançamento:', {
+        error,
+        errorMessage: error.message,
+        errorResponse: error.response,
+        transactionId: transaction.id,
+        formData
+      });
+      
+      // Tratar diferentes tipos de erro
+      let errorMessage = 'Não foi possível atualizar o lançamento. Tente novamente.';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'Lançamento não encontrado ou você não tem permissão para editá-lo.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Dados inválidos. Verifique os campos preenchidos.';
+        if (error.response?.data?.error?.message) {
+          errorMessage += `\n\nDetalhes: ${error.response.data.error.message}`;
+        }
+      } else if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Erro', errorMessage);
     } finally {
       setIsLoading(false);
     }

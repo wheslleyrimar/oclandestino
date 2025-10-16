@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,17 @@ import {
 } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../context/ThemeContext';
+import { useFinance } from '../context/FinanceContext';
+import NewEntryModal from './NewEntryModal';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
   descriptors,
   navigation,
 }) => {
+  const [showNewEntryModal, setShowNewEntryModal] = useState(false);
   const { state: themeState } = useTheme();
+  const { loadData } = useFinance();
 
   // Verificação de segurança
   if (!themeState || !themeState.colors) {
@@ -56,55 +60,86 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
   const styles = createStyles(themeState.colors);
 
+  const handleNewEntryPress = () => {
+    setShowNewEntryModal(true);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const label = getTabLabel(route.name);
-          const isFocused = state.index === index;
+    <>
+      <View style={styles.container}>
+        <View style={styles.tabBar}>
+          {/* Renderizar tabs na ordem correta: Overview, Dashboard, Novo, Transactions, Configuration */}
+          {state.routes.map((route, index) => {
+            const { options } = descriptors[route.key];
+            const label = getTabLabel(route.name);
+            const isFocused = state.index === index;
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
 
-          return (
-            <TouchableOpacity
-              key={index}
-              style={styles.tab}
-              onPress={onPress}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.tabIcon,
-                  { color: isFocused ? '#3b82f6' : '#9ca3af' }
-                ]}
-              >
-                {getTabIcon(route.name, isFocused)}
-              </Text>
-              <Text
-                style={[
-                  styles.tabLabel,
-                  { color: isFocused ? '#3b82f6' : '#9ca3af' }
-                ]}
-              >
-                {label}
-              </Text>
-              {isFocused && <View style={styles.activeIndicator} />}
-            </TouchableOpacity>
-          );
-        })}
+            return (
+              <React.Fragment key={`tab-${index}`}>
+                <TouchableOpacity
+                  style={styles.tab}
+                  onPress={onPress}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.tabIcon,
+                      { color: isFocused ? '#3b82f6' : '#9ca3af' }
+                    ]}
+                  >
+                    {getTabIcon(route.name, isFocused)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      { color: isFocused ? '#3b82f6' : '#9ca3af' }
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                  {isFocused && <View style={styles.activeIndicator} />}
+                </TouchableOpacity>
+                
+                {/* Adicionar botão Novo Lançamento após Dashboard */}
+                {route.name === 'Dashboard' && (
+                  <TouchableOpacity
+                    style={styles.newEntryButton}
+                    onPress={handleNewEntryPress}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.newEntryButtonContent}>
+                      <Text style={styles.newEntryIcon}>+</Text>
+                    </View>
+                    <Text style={styles.newEntryLabel}>Novo</Text>
+                  </TouchableOpacity>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </View>
       </View>
-    </View>
+      
+      {/* Modal */}
+      <NewEntryModal
+        isVisible={showNewEntryModal}
+        onClose={() => setShowNewEntryModal(false)}
+        onSuccess={() => {
+          loadData(); // Recarregar dados após sucesso
+        }}
+      />
+    </>
   );
 };
 
@@ -121,12 +156,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     borderRadius: 25,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-evenly',
     shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
@@ -140,15 +175,16 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 6,
     position: 'relative',
+    flexShrink: 0,
   },
   tabIcon: {
-    fontSize: 24,
+    fontSize: 20,
     marginBottom: 4,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
   },
   activeIndicator: {
@@ -158,5 +194,42 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.primary,
+  },
+  newEntryButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    position: 'relative',
+    marginHorizontal: 4,
+    flexShrink: 0,
+  },
+  newEntryButtonContent: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    shadowColor: colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  newEntryIcon: {
+    fontSize: 20,
+    color: '#ffffff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  newEntryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

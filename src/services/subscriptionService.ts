@@ -3,15 +3,40 @@ import { Platform } from 'react-native';
 // Importação condicional do react-native-iap apenas para plataformas móveis
 let iapModule: any = null;
 
+// Função para detectar se estamos no Expo Go
+const isExpoGo = () => {
+  try {
+    // Verificar se estamos no Expo Go através de constantes do Expo
+    return typeof __DEV__ !== 'undefined' && 
+           typeof window !== 'undefined' && 
+           (window as any).expo && 
+           (window as any).expo.ExpoGo;
+  } catch {
+    // Fallback: verificar se estamos em ambiente de desenvolvimento
+    // No Expo Go, geralmente __DEV__ é true e não temos acesso a módulos nativos
+    return typeof __DEV__ !== 'undefined';
+  }
+};
+
 const initializeIAPModule = () => {
+  // Não inicializar no web
   if (Platform.OS === 'web') {
+    return null;
+  }
+  
+  // Não inicializar no Expo Go - verificação mais robusta
+  if (isExpoGo()) {
+    return null;
+  }
+  
+  // Verificação adicional: se estamos em desenvolvimento, não carregar o módulo
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
     return null;
   }
   
   try {
     return require('react-native-iap');
   } catch (error) {
-    // Silently fail for web or when module is not available
     return null;
   }
 };
@@ -44,9 +69,9 @@ export interface PurchaseResult {
 
 class SubscriptionService {
   private productIds = [
-    'com.klans.finance.premium.monthly',
-    'com.klans.finance.premium.yearly',
-    'com.klans.finance.premium.quarterly'
+    'com.clans.finance.premium.monthly',
+    'com.clans.finance.premium.yearly',
+    'com.clans.finance.premium.quarterly'
   ];
 
   private purchaseUpdateSubscription: any = null;
@@ -54,6 +79,11 @@ class SubscriptionService {
 
   async initialize(): Promise<boolean> {
     try {
+      // Verificar se estamos no Expo Go primeiro
+      if (isExpoGo()) {
+        return false;
+      }
+
       const module = getIAPModule();
       if (Platform.OS === 'web' || !module) {
         return false;

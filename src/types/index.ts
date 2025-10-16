@@ -76,6 +76,18 @@ export interface MonthlyGoal {
   updatedAt: string;
 }
 
+export interface MonthlyGoalHistory {
+  id: string;
+  month: string; // YYYY-MM format
+  targetAmount: number;
+  achievedAmount: number;
+  percentage: number;
+  wasAchieved: boolean;
+  driverId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PeriodMetrics {
   period: 'daily' | 'weekly' | 'monthly';
   averageEarnings: number;
@@ -93,14 +105,21 @@ export type Platform = 'Uber' | '99' | 'inDrive' | 'Cabify' | 'Outros';
 export type ExpenseCategory = 'Combustível' | 'Manutenção' | 'Alimentação' | 'Pedágio' | 'Estacionamento' | 'Outros';
 
 // Configuration types
+export type AppType = 'Uber' | '99' | 'inDrive' | 'Cabify' | 'Outros';
+export type VehicleStatus = 'Próprio' | 'Alugado';
+export type VehicleProtection = 'Seguro' | 'Proteção Veicular' | 'Desprotegido';
+
 export interface DriverProfile {
   id: string;
   name: string;
   email: string;
   phone: string;
-  licenseNumber: string;
-  vehicleModel: string;
-  vehiclePlate: string;
+  favoriteApps: AppType[];
+  appCategories: string[];
+  vehicleModel?: string;
+  vehiclePlate?: string;
+  vehicleStatus?: VehicleStatus;
+  vehicleProtection?: VehicleProtection;
   avatar?: string;
   createdAt: string;
   updatedAt: string;
@@ -108,13 +127,8 @@ export interface DriverProfile {
 
 export interface PerformanceGoals {
   id: string;
-  monthlyEarningsGoal: number;
-  dailyTripsGoal: number;
-  weeklyHoursGoal: number;
-  monthlyHoursGoal: number;
-  averageEarningsPerHourGoal: number;
-  averageEarningsPerTripGoal: number;
-  workingDaysPerWeekGoal: number;
+  monthlyRevenueGoal: number; // Meta Mensal (Faturamento)
+  monthlyNetProfitGoal: number; // Meta de Lucro Líquido
   driverId: string;
   createdAt: string;
   updatedAt: string;

@@ -6,32 +6,29 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { PeriodTabs } from '../components/PeriodTabs';
-import { StatCard } from '../components/StatCard';
-import { PremiumButton, PremiumStatus } from '../components/PremiumButton';
 import { RevenueChart } from '../components/RevenueChart';
 import { ExpenseChart } from '../components/ExpenseChart';
 import { PerformanceChart } from '../components/PerformanceChart';
-import { FloatingActionButton } from '../components/FloatingActionButton';
 import { DashboardData } from '../services/apiService';
 import { apiService } from '../services/apiService';
+import { authService } from '../services/authService';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  calculateIndicators,
-  IndicatorsData 
-} from '../utils/indicatorsCalculator';
 
 const DashboardScreen: React.FC = () => {
   const { state, setPeriod, getDashboardData, setFilters } = useFinance();
   const { state: themeState } = useTheme();
+  const { logout } = useAuth();
   const { t } = useTranslation();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [indicators, setIndicators] = useState<IndicatorsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,10 +82,22 @@ const DashboardScreen: React.FC = () => {
     loadDashboardData();
   }, [state.selectedPeriod]);
 
+  // useEffect para recarregar dados quando transações são atualizadas
+  useEffect(() => {
+    loadDashboardData();
+  }, [state.lastUpdated]);
+
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Verificar se há token válido antes de fazer as requisições
+      const token = await authService.getStoredToken();
+      if (!token) {
+        throw new Error('Token de autenticação não encontrado. Faça login novamente.');
+      }
+      
       
       // Definir filtros baseados no período selecionado
       const now = new Date();
@@ -118,22 +127,11 @@ const DashboardScreen: React.FC = () => {
       }
 
 
-      // Fazer chamadas paralelas para dashboard e receitas
-      const [dashboardResponse, revenuesResponse] = await Promise.all([
-        apiService.getDashboardData({ startDate, endDate }),
-        apiService.getRevenues({ 
-          startDate, 
-          endDate, 
-          limit: Math.max(1, Math.min(100, 100)) // Garantir que está entre 1 e 100
-        })
-      ]);
+      // Fazer chamada para dashboard
+      const dashboardResponse = await apiService.getDashboardData({ startDate, endDate });
 
-
-      if (dashboardResponse.success && revenuesResponse.success) {
+      if (dashboardResponse.success) {
         const dashboardData = dashboardResponse.data;
-        // Verificar se a estrutura de resposta está correta
-        const revenues = revenuesResponse.data?.data || revenuesResponse.data || [];
-
 
         // Garantir que os dados tenham a estrutura correta
         const safeData = {
@@ -153,27 +151,21 @@ const DashboardScreen: React.FC = () => {
           dailyProfit: dashboardData?.dailyProfit || [],
         };
 
-        // Verificar se há dados nas receitas
-        if (revenues.length > 0) {
-          // Debug removido
-        } else {
-          // Nenhuma receita encontrada
-        }
-
-        // Calcular indicadores usando dados reais
-        // Garantir que revenues seja um array antes de passar para calculateIndicators
-        const safeRevenues = Array.isArray(revenues) ? revenues : [];
-        const calculatedIndicators = calculateIndicators(safeData, safeRevenues, state.selectedPeriod);
-
-
         setDashboardData(safeData);
-        setIndicators(calculatedIndicators);
       } else {
-        throw new Error(`Failed to load data: Dashboard=${dashboardResponse.success}, Revenues=${revenuesResponse.success}`);
+        throw new Error(`Erro ao carregar dashboard: ${dashboardResponse.message || 'Falha desconhecida'}`);
       }
     } catch (err) {
       console.error('Erro ao carregar dados do dashboard:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      
+      // Verificar se é erro de token inválido
+      if (err instanceof Error && err.message.includes('invalid token')) {
+        setError('Sessão expirada. Faça login novamente.');
+      } else if (err instanceof Error && err.message.includes('Token de autenticação')) {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Falha ao carregar dados do dashboard');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -199,17 +191,36 @@ const DashboardScreen: React.FC = () => {
   }
 
   if (error) {
+    const isTokenError = error.includes('Token de autenticação') || error.includes('Sessão expirada') || error.includes('invalid token');
+    
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeState.colors.background }]}>
         <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.surface} />
         <View style={styles.errorContainer}>
+          <Ionicons 
+            name="warning-outline" 
+            size={48} 
+            color={themeState.colors.error} 
+            style={styles.errorIcon}
+          />
           <Text style={styles.errorText}>{t('common.error')}: {error}</Text>
+          {isTokenError && (
+            <TouchableOpacity 
+              style={styles.loginButton} 
+              onPress={async () => {
+                await logout();
+                // O logout redirecionará automaticamente para a tela de login
+              }}
+            >
+              <Text style={styles.loginButtonText}>Fazer Login Novamente</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
   }
 
-  if (!dashboardData || !indicators) {
+  if (!dashboardData) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeState.colors.background }]}>
         <StatusBar barStyle={themeState.isDark ? "light-content" : "dark-content"} backgroundColor={themeState.colors.surface} />
@@ -230,17 +241,13 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
-              <Ionicons name="bar-chart-outline" size={24} color={themeState.colors.text} />
+              <Ionicons name="bar-chart-outline" size={20} color="#ffffff" />
             </View>
             <View>
               <Text style={styles.title}>{t('dashboard.title')}</Text>
               <Text style={styles.subtitle}>Visão geral dos seus ganhos</Text>
             </View>
           </View>
-          <PremiumButton variant="secondary" size="small" />
-        </View>
-        <View style={styles.headerBottom}>
-          <PremiumStatus />
         </View>
       </View>
 
@@ -251,41 +258,6 @@ const DashboardScreen: React.FC = () => {
           onPeriodChange={handlePeriodChange}
         />
 
-        {/* Financial Overview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumo Financeiro</Text>
-          
-          <View style={styles.statsGrid}>
-            <StatCard
-              title={t('dashboard.totalRevenue')}
-              value={`R$ ${(dashboardData.totalRevenue || 0).toFixed(2)}`}
-              icon="💰"
-              color="#22c55e"
-            />
-            <StatCard
-              title="Gastos Totais"
-              value={`R$ ${(dashboardData.totalExpenses || 0).toFixed(2)}`}
-              icon="💸"
-              color="#ef4444"
-            />
-            <StatCard
-              title={t('dashboard.netProfit')}
-              value={`R$ ${(dashboardData.netProfit || 0).toFixed(2)}`}
-              icon="📈"
-              color={(dashboardData.netProfit || 0) >= 0 ? "#22c55e" : "#ef4444"}
-            />
-            <StatCard
-              title={t('dashboard.workingDaysCount')}
-              value={(dashboardData.workingDaysCount || 0).toString()}
-              icon="📅"
-              color="#0ea5e9"
-            />
-          </View>
-        </View>
-
-
-
-
         {/* Charts Section */}
         <RevenueChart data={dashboardData} period={state.selectedPeriod} />
         <ExpenseChart data={dashboardData} period={state.selectedPeriod} />
@@ -294,9 +266,6 @@ const DashboardScreen: React.FC = () => {
         {/* Bottom spacing for tab bar */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-      
-      {/* Floating Action Button */}
-      <FloatingActionButton />
     </SafeAreaView>
   );
 };
@@ -309,10 +278,16 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
     borderBottomColor: colors.border,
+    paddingTop: Platform.OS === 'ios' ? 20 : 15,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTop: {
     flexDirection: 'row',
@@ -322,57 +297,42 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: 20,
   },
   headerIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  headerBottom: {
-    marginTop: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.text,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+    fontWeight: '500',
+    opacity: 0.8,
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  section: {
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
   bottomSpacing: {
-    height: 120,
+    height: Platform.OS === 'ios' ? 150 : 140,
   },
   loadingContainer: {
     flex: 1,
@@ -392,10 +352,26 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 20,
   },
+  errorIcon: {
+    marginBottom: 16,
+  },
   errorText: {
     fontSize: 16,
     color: colors.error,
     textAlign: 'center',
+    marginBottom: 24,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  loginButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

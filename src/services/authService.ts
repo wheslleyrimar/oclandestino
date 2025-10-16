@@ -156,13 +156,18 @@ class AuthService {
     return token !== null;
   }
 
-  getAuthHeaders(): Record<string, string> {
-    if (!this.token) {
-      return {};
+  async getAuthHeaders(): Promise<Record<string, string>> {
+    // Tentar obter o token da memória ou do AsyncStorage
+    const token = await this.getStoredToken();
+    
+    if (!token) {
+      return {
+        'Content-Type': 'application/json',
+      };
     }
 
     return {
-      'Authorization': `Bearer ${this.token}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
   }

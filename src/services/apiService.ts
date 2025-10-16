@@ -64,20 +64,63 @@ class APIService {
     options: RequestInit = {}
   ): Promise<APIResponse<T>> {
     try {
+      const authHeaders = await authService.getAuthHeaders();
       const headers = {
-        ...authService.getAuthHeaders(),
+        'Content-Type': 'application/json',
+        ...authHeaders,
         ...options.headers,
       };
+
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
       });
 
-      const data = await response.json();
+      // Verificar se a resposta é JSON válido antes de fazer parse
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error(`API Error [${endpoint}]: JSON Parse Error`, {
+            status: response.status,
+            statusText: response.statusText,
+            contentType,
+            error: jsonError
+          });
+          
+          const error = new Error(`Invalid JSON response: ${response.status}`);
+          (error as any).response = { status: response.status, contentType };
+          throw error;
+        }
+      } else {
+        // Se não for JSON, ler como texto para debug
+        const text = await response.text();
+        console.error(`API Error [${endpoint}]: Non-JSON response`, {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          text: text.substring(0, 200) // Primeiros 200 caracteres para debug
+        });
+        
+        const error = new Error(`Invalid response format: ${response.status}`);
+        (error as any).response = { status: response.status, text };
+        throw error;
+      }
 
       if (!response.ok) {
-        throw new Error(data.error?.message || `HTTP ${response.status}`);
+        console.error(`API Error [${endpoint}]:`, {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        });
+        
+        const error = new Error(data.error?.message || `HTTP ${response.status}`);
+        (error as any).response = { status: response.status, data };
+        throw error;
       }
 
       return data;
@@ -104,16 +147,29 @@ class APIService {
   }
 
   async createRevenue(revenue: Omit<Revenue, 'id' | 'createdAt' | 'updatedAt' | 'driverId'>): Promise<APIResponse<Revenue>> {
+    // Converter data para ISO string se presente
+    const payload = {
+      ...revenue,
+      date: revenue.date ? new Date(revenue.date).toISOString() : undefined
+    };
+    
     return this.makeRequest<Revenue>('/revenues', {
       method: 'POST',
-      body: JSON.stringify(revenue),
+      body: JSON.stringify(payload),
     });
   }
 
   async updateRevenue(id: string, revenue: Partial<Revenue>): Promise<APIResponse<Revenue>> {
+    // Converter data para ISO string se presente
+    const payload = {
+      ...revenue,
+      date: revenue.date ? new Date(revenue.date).toISOString() : undefined
+    };
+    
+    
     return this.makeRequest<Revenue>(`/revenues/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(revenue),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -156,16 +212,29 @@ class APIService {
   }
 
   async createExpense(expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'driverId'>): Promise<APIResponse<Expense>> {
+    // Converter data para ISO string se presente
+    const payload = {
+      ...expense,
+      date: expense.date ? new Date(expense.date).toISOString() : undefined
+    };
+    
     return this.makeRequest<Expense>('/expenses', {
       method: 'POST',
-      body: JSON.stringify(expense),
+      body: JSON.stringify(payload),
     });
   }
 
   async updateExpense(id: string, expense: Partial<Expense>): Promise<APIResponse<Expense>> {
+    // Converter data para ISO string se presente
+    const payload = {
+      ...expense,
+      date: expense.date ? new Date(expense.date).toISOString() : undefined
+    };
+    
+    
     return this.makeRequest<Expense>(`/expenses/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(expense),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -320,19 +389,6 @@ class APIService {
     });
   }
 
-  async getPerformanceGoals(): Promise<APIResponse<PerformanceGoals>> {
-    try {
-      const endpoint = '/goals/performance';
-
-
-      const response = await this.makeRequest<PerformanceGoals>(endpoint);
-      
-      return response;
-    } catch (error) {
-      console.error('Erro ao buscar metas de desempenho:', error);
-      throw error;
-    }
-  }
 
   async getMonthlyGoal(month?: string): Promise<APIResponse<MonthlyGoal>> {
     try {

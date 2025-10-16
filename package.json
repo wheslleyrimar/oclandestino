@@ -1,5 +1,5 @@
 {
-  "name": "klans",
+  "name": "clans",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,8 @@
     "axios": "^1.12.2",
     "expo": "~54.0.13",
     "expo-font": "~14.0.9",
+    "expo-haptics": "^15.0.7",
+    "expo-image-picker": "^17.0.8",
     "expo-linear-gradient": "^15.0.7",
     "expo-status-bar": "~3.0.8",
     "nativewind": "^4.2.1",

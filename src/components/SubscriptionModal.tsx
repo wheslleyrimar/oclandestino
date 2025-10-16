@@ -61,11 +61,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, o
 
   const getProductDisplayName = (productId: string) => {
     switch (productId) {
-      case 'com.klans.finance.premium.monthly':
+      case 'com.clans.finance.premium.monthly':
         return 'Premium Mensal';
-      case 'com.klans.finance.premium.yearly':
+      case 'com.clans.finance.premium.yearly':
         return 'Premium Anual';
-      case 'com.klans.finance.premium.quarterly':
+      case 'com.clans.finance.premium.quarterly':
         return 'Premium Trimestral';
       default:
         return 'Premium';
@@ -74,11 +74,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, o
 
   const getProductDescription = (productId: string) => {
     switch (productId) {
-      case 'com.klans.finance.premium.monthly':
+      case 'com.clans.finance.premium.monthly':
         return 'Acesso completo por 1 mês';
-      case 'com.klans.finance.premium.yearly':
+      case 'com.clans.finance.premium.yearly':
         return 'Acesso completo por 1 ano (Economize 20%)';
-      case 'com.klans.finance.premium.quarterly':
+      case 'com.clans.finance.premium.quarterly':
         return 'Acesso completo por 3 meses';
       default:
         return 'Acesso premium completo';
@@ -87,9 +87,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, o
 
   const getSavingsText = (productId: string) => {
     switch (productId) {
-      case 'com.klans.finance.premium.yearly':
+      case 'com.clans.finance.premium.yearly':
         return 'Economize 20%';
-      case 'com.klans.finance.premium.quarterly':
+      case 'com.clans.finance.premium.quarterly':
         return 'Economize 10%';
       default:
         return null;
@@ -130,7 +130,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, o
             Upgrade para Premium
           </Text>
           <Text className="text-gray-600 text-center mb-8">
-            Desbloqueie todas as funcionalidades do KLANS
+            Desbloqueie todas as funcionalidades do CLANS
           </Text>
 
           {error && (
@@ -162,7 +162,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ visible, o
                   <TouchableOpacity
                     key={product.productId}
                     className={`border-2 rounded-lg p-4 mb-4 ${
-                      product.productId === 'com.klans.finance.premium.yearly'
+                      product.productId === 'com.clans.finance.premium.yearly'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200'
                     }`}
