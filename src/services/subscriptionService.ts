@@ -69,9 +69,9 @@ export interface PurchaseResult {
 
 class SubscriptionService {
   private productIds = [
-    'com.clans.finance.premium.monthly',
-    'com.clans.finance.premium.yearly',
-    'com.clans.finance.premium.quarterly'
+    'com.klans.finance.premium.monthly',
+    'com.klans.finance.premium.yearly',
+    'com.klans.finance.premium.quarterly'
   ];
 
   private purchaseUpdateSubscription: any = null;

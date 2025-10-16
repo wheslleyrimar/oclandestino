@@ -76,15 +76,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       icon: '📅',
       description: 'Escolha a data para os lançamentos',
       fields: [],
-      summary: {
-        title: 'Dicas de Data',
-        items: [
-          { label: 'Hoje', value: 'Lançamentos do dia atual' },
-          { label: 'Ontem', value: 'Lançamentos do dia anterior' },
-          { label: 'Esta semana', value: 'Lançamentos da semana' },
-          { label: 'Mês atual', value: 'Lançamentos do mês' },
-        ]
-      }
     },
     {
       title: 'Receita da Uber',
@@ -94,15 +85,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
         { key: 'uberRevenue.value', label: 'Valor Recebido (opcional)', placeholder: 'R$ 0,00' },
         { key: 'uberRevenue.rides', label: 'Número de Corridas (opcional)', placeholder: '0' },
       ],
-      summary: {
-        title: 'Valores Comuns Uber',
-        items: [
-          { label: 'Corrida curta', value: 'R$ 8-15' },
-          { label: 'Corrida média', value: 'R$ 15-25' },
-          { label: 'Corrida longa', value: 'R$ 25-40' },
-          { label: 'Média por corrida', value: 'R$ 18' },
-        ]
-      }
     },
     {
       title: 'Receita da 99',
@@ -112,15 +94,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
         { key: 'ninetyNineRevenue.value', label: 'Valor Recebido (opcional)', placeholder: 'R$ 0,00' },
         { key: 'ninetyNineRevenue.rides', label: 'Número de Corridas (opcional)', placeholder: '0' },
       ],
-      summary: {
-        title: 'Valores Comuns 99',
-        items: [
-          { label: 'Corrida curta', value: 'R$ 7-12' },
-          { label: 'Corrida média', value: 'R$ 12-22' },
-          { label: 'Corrida longa', value: 'R$ 22-35' },
-          { label: 'Média por corrida', value: 'R$ 16' },
-        ]
-      }
     },
     {
       title: 'Outros Apps',
@@ -131,15 +104,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
         { key: 'otherAppsRevenue.value', label: 'Valor Recebido (opcional)', placeholder: 'R$ 0,00' },
         { key: 'otherAppsRevenue.rides', label: 'Número de Corridas (opcional)', placeholder: '0' },
       ],
-      summary: {
-        title: 'Apps Populares',
-        items: [
-          { label: 'inDrive', value: 'Preço negociável' },
-          { label: 'Cabify', value: 'R$ 10-30' },
-          { label: 'Maxi Taxi', value: 'R$ 8-20' },
-          { label: 'Indrive', value: 'R$ 6-25' },
-        ]
-      }
     },
     {
       title: 'Quilometragem',
@@ -148,15 +112,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       fields: [
         { key: 'mileage.kilometers', label: 'Total de KMs rodados', placeholder: '0' },
       ],
-      summary: {
-        title: 'Distâncias Comuns',
-        items: [
-          { label: 'Jornada leve', value: '50-80 km' },
-          { label: 'Jornada média', value: '80-120 km' },
-          { label: 'Jornada pesada', value: '120-200 km' },
-          { label: 'Jornada intensa', value: '200+ km' },
-        ]
-      }
     },
     {
       title: 'Horas Trabalhadas',
@@ -165,15 +120,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       fields: [
         { key: 'workHours.hours', label: 'Total de horas', placeholder: '0' },
       ],
-      summary: {
-        title: 'Jornadas Comuns',
-        items: [
-          { label: 'Meio período', value: '4-6 horas' },
-          { label: 'Jornada padrão', value: '8 horas' },
-          { label: 'Jornada estendida', value: '10-12 horas' },
-          { label: 'Jornada intensa', value: '12+ horas' },
-        ]
-      }
     },
     {
       title: 'Combustível',
@@ -182,15 +128,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
       fields: [
         { key: 'fuelExpense.value', label: 'Valor gasto em combustível', placeholder: 'R$ 0,00' },
       ],
-      summary: {
-        title: 'Estimativas de Consumo',
-        items: [
-          { label: 'Consumo médio', value: '10-12 km/L' },
-          { label: '50 km', value: 'R$ 15-20' },
-          { label: '100 km', value: 'R$ 30-40' },
-          { label: '200 km', value: 'R$ 60-80' },
-        ]
-      }
     },
   ];
 
@@ -233,92 +170,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
     }
   };
 
-  const handleSuggestionClick = (item: any, step: number) => {
-    switch (step) {
-      case 1: // Uber
-        if (item.label.includes('curta')) {
-          updateFormData('uberRevenue.value', '12');
-          updateFormData('uberRevenue.rides', '1');
-        } else if (item.label.includes('média')) {
-          updateFormData('uberRevenue.value', '20');
-          updateFormData('uberRevenue.rides', '1');
-        } else if (item.label.includes('longa')) {
-          updateFormData('uberRevenue.value', '32');
-          updateFormData('uberRevenue.rides', '1');
-        } else if (item.label.includes('Média')) {
-          updateFormData('uberRevenue.value', '18');
-          updateFormData('uberRevenue.rides', '1');
-        }
-        break;
-      case 2: // 99
-        if (item.label.includes('curta')) {
-          updateFormData('ninetyNineRevenue.value', '10');
-          updateFormData('ninetyNineRevenue.rides', '1');
-        } else if (item.label.includes('média')) {
-          updateFormData('ninetyNineRevenue.value', '17');
-          updateFormData('ninetyNineRevenue.rides', '1');
-        } else if (item.label.includes('longa')) {
-          updateFormData('ninetyNineRevenue.value', '28');
-          updateFormData('ninetyNineRevenue.rides', '1');
-        } else if (item.label.includes('Média')) {
-          updateFormData('ninetyNineRevenue.value', '16');
-          updateFormData('ninetyNineRevenue.rides', '1');
-        }
-        break;
-      case 3: // Outros Apps
-        if (item.label === 'inDrive') {
-          updateFormData('otherAppsRevenue.appName', 'inDrive');
-          updateFormData('otherAppsRevenue.value', '15');
-          updateFormData('otherAppsRevenue.rides', '1');
-        } else if (item.label === 'Cabify') {
-          updateFormData('otherAppsRevenue.appName', 'Cabify');
-          updateFormData('otherAppsRevenue.value', '20');
-          updateFormData('otherAppsRevenue.rides', '1');
-        } else if (item.label === 'Maxi Taxi') {
-          updateFormData('otherAppsRevenue.appName', 'Maxi Taxi');
-          updateFormData('otherAppsRevenue.value', '14');
-          updateFormData('otherAppsRevenue.rides', '1');
-        } else if (item.label === 'Indrive') {
-          updateFormData('otherAppsRevenue.appName', 'Indrive');
-          updateFormData('otherAppsRevenue.value', '15');
-          updateFormData('otherAppsRevenue.rides', '1');
-        }
-        break;
-      case 4: // Quilometragem
-        if (item.label.includes('leve')) {
-          updateFormData('mileage.kilometers', '65');
-        } else if (item.label.includes('média')) {
-          updateFormData('mileage.kilometers', '100');
-        } else if (item.label.includes('pesada')) {
-          updateFormData('mileage.kilometers', '160');
-        } else if (item.label.includes('intensa')) {
-          updateFormData('mileage.kilometers', '250');
-        }
-        break;
-      case 5: // Horas Trabalhadas
-        if (item.label.includes('Meio período')) {
-          updateFormData('workHours.hours', '5');
-        } else if (item.label.includes('padrão')) {
-          updateFormData('workHours.hours', '8');
-        } else if (item.label.includes('estendida')) {
-          updateFormData('workHours.hours', '11');
-        } else if (item.label.includes('intensa')) {
-          updateFormData('workHours.hours', '14');
-        }
-        break;
-      case 6: // Combustível
-        if (item.label === '50 km') {
-          updateFormData('fuelExpense.value', '17');
-        } else if (item.label === '100 km') {
-          updateFormData('fuelExpense.value', '35');
-        } else if (item.label === '200 km') {
-          updateFormData('fuelExpense.value', '70');
-        } else if (item.label.includes('Consumo médio')) {
-          updateFormData('fuelExpense.value', '25');
-        }
-        break;
-    }
-  };
 
   const handleSubmit = async () => {
     try {
@@ -676,30 +527,6 @@ const NewEntryModal: React.FC<NewEntryModalProps> = ({ isVisible, onClose, onSuc
                 </View>
               ))}
             </View>
-
-            {/* Summary Section */}
-            <View style={[styles.summaryContainer, { 
-              backgroundColor: themeState.colors.surface,
-              borderColor: themeState.colors.border
-            }]}>
-              <Text style={[styles.summaryTitle, { color: themeState.colors.text }]}>{currentStepData.summary.title}</Text>
-              <View style={styles.summaryGrid}>
-                {currentStepData.summary.items.map((item, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    style={[styles.summaryItem, { 
-                      backgroundColor: themeState.colors.background,
-                      borderColor: themeState.colors.border
-                    }]}
-                    onPress={() => handleSuggestionClick(item, currentStep)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.summaryLabel, { color: themeState.colors.textSecondary }]}>{item.label}</Text>
-                    <Text style={[styles.summaryValue, { color: themeState.colors.text }]}>{item.value}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
           </View>
         </ScrollView>
 
@@ -914,48 +741,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-  },
-  summaryContainer: {
-    width: '100%',
-    marginTop: 24,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  summaryItem: {
-    width: '48%',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   navigationContainer: {
     flexDirection: 'row',

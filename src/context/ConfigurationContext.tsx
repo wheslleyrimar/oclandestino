@@ -218,7 +218,6 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
         const response = await apiService.updateMonthlyGoal(state.goals.id, updateData);
         
         if (response.success) {
-          console.log('✅ ConfigurationContext: Meta mensal atualizada:', response.data);
           dispatch({ type: 'UPDATE_GOALS', payload: {
             monthlyRevenueGoal: response.data.targetAmount,
             monthlyNetProfitGoal: goals.monthlyNetProfitGoal || state.goals.monthlyNetProfitGoal,
@@ -235,7 +234,6 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
         const response = await apiService.createMonthlyGoal(createData);
         
         if (response.success) {
-          console.log('✅ ConfigurationContext: Meta mensal criada:', response.data);
           dispatch({ type: 'UPDATE_GOALS', payload: {
             id: response.data.id,
             monthlyRevenueGoal: response.data.targetAmount,

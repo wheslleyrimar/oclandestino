@@ -270,7 +270,7 @@ const AuthScreen: React.FC = () => {
                 <View style={[styles.logo, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                   <Ionicons name="car-sport" size={40} color="#ffffff" />
                 </View>
-                <Text style={styles.appName}>CLANS</Text>
+                <Text style={styles.appName}>KLANS</Text>
                 <Text style={styles.appSubtitle}>
                   {isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta'}
                 </Text>

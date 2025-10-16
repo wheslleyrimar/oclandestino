@@ -224,23 +224,16 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
-      console.log('🔍 Carregando meta mensal para o mês:', currentMonth);
-      
       const [revenuesResponse, expensesResponse, monthlyGoalResponse] = await Promise.all([
         apiService.getRevenues({ limit: 100 }),
         apiService.getExpenses({ limit: 100 }),
         apiService.getMonthlyGoal(currentMonth),
       ]);
 
-      console.log('📊 Resposta da meta mensal:', monthlyGoalResponse);
-
       // Usar a meta mensal do endpoint correto
       let finalMonthlyGoal = null;
       if (monthlyGoalResponse.success && monthlyGoalResponse.data) {
         finalMonthlyGoal = monthlyGoalResponse;
-        console.log('✅ Meta mensal carregada:', finalMonthlyGoal.data);
-      } else {
-        console.log('❌ Meta mensal não encontrada ou erro:', monthlyGoalResponse.message);
       }
 
 
@@ -499,12 +492,6 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Se o valor atual é diferente do valor armazenado na meta, atualizar localmente
     if (currentAmount !== state.monthlyGoal.currentAmount) {
-      console.log('🔄 Atualizando meta mensal apenas localmente:', {
-        goalId: state.monthlyGoal.id,
-        currentAmount,
-        previousAmount: state.monthlyGoal.currentAmount
-      });
-      
       const updatedGoal = {
         ...state.monthlyGoal,
         currentAmount: currentAmount

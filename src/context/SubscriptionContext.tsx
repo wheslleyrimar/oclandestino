@@ -15,8 +15,8 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
-const PREMIUM_STATUS_KEY = '@clans:premium_status';
-const PURCHASE_DATA_KEY = '@clans:purchase_data';
+const PREMIUM_STATUS_KEY = '@klans:premium_status';
+const PURCHASE_DATA_KEY = '@klans:purchase_data';
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isPremium, setIsPremium] = useState(false);
