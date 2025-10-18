@@ -21,6 +21,7 @@ import { WorkEntryModal } from '../components/WorkEntryModal';
 import NewEntryModal from '../components/NewEntryModal';
 import { EditTransactionModal } from '../components/EditTransactionModal';
 import { Revenue, Expense } from '../types';
+import NotificationIcon from '../components/NotificationIcon';
 
 const TransactionsScreen: React.FC = () => {
   const { getFilteredRevenues, getFilteredExpenses, loadData, setFilters } = useFinance();
@@ -98,6 +99,9 @@ const TransactionsScreen: React.FC = () => {
               <Text style={styles.title}>Lançamentos</Text>
               <Text style={styles.subtitle}>Gerencie suas receitas e gastos</Text>
             </View>
+          </View>
+          <View style={styles.headerRight}>
+            <NotificationIcon />
           </View>
         </View>
       </View>
@@ -239,6 +243,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   headerIcon: {
     width: 40,

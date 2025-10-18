@@ -22,6 +22,7 @@ import { DashboardData } from '../services/apiService';
 import { apiService } from '../services/apiService';
 import { authService } from '../services/authService';
 import { Ionicons } from '@expo/vector-icons';
+import NotificationIcon from '../components/NotificationIcon';
 
 const DashboardScreen: React.FC = () => {
   const { state, setPeriod, getDashboardData, setFilters } = useFinance();
@@ -248,6 +249,9 @@ const DashboardScreen: React.FC = () => {
               <Text style={styles.subtitle}>Visão geral dos seus ganhos</Text>
             </View>
           </View>
+          <View style={styles.headerRight}>
+            <NotificationIcon />
+          </View>
         </View>
       </View>
 
@@ -299,6 +303,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     marginRight: 20,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   headerIcon: {
     width: 40,

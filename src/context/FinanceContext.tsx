@@ -39,7 +39,7 @@ const initialState: FinanceState = {
   filters: {},
   monthlyGoal: null,
   monthlyGoalHistory: [],
-  selectedPeriod: 'monthly',
+  selectedPeriod: 'daily',
   isLoading: false,
   error: null,
   lastUpdated: Date.now(),

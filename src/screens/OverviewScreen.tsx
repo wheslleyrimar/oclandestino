@@ -20,6 +20,7 @@ import { CircularProgress } from '../components/CircularProgress';
 import { DashboardData } from '../services/apiService';
 import { calculateIndicators } from '../utils/indicatorsCalculator';
 import { Ionicons } from '@expo/vector-icons';
+import NotificationIcon from '../components/NotificationIcon';
 
 const OverviewScreen: React.FC = () => {
   const { state, setPeriod, getDashboardData, setFilters, checkAndResetMonthlyGoal } = useFinance();
@@ -373,6 +374,7 @@ const OverviewScreen: React.FC = () => {
           <Text style={styles.userGreeting}>
             Olá, {authState.driver?.name?.split(' ')[0] || 'Usuário'}
           </Text>
+          <NotificationIcon />
         </View>
       </View>
 
@@ -686,7 +688,9 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerRight: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    minWidth: 120,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   appIcon: {
     width: 48,
@@ -732,7 +736,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 6,
     textAlign: 'right',
   },
   filterButton: {

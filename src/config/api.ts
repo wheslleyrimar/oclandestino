@@ -35,28 +35,3 @@ export const API_CONFIG = {
   retryDelay: 1000, // 1 segundo
 };
 
-// Função para obter o IP local da máquina (para dispositivos físicos)
-export const getLocalIP = () => {
-  // Esta função deve ser implementada para obter o IP real da máquina
-  // Por enquanto, retorna o IP padrão do emulador
-  return '10.0.2.2';
-};
-
-// Função para testar a conectividade
-export const testConnection = async (baseUrl: string) => {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const response = await fetch(`${baseUrl}/health`, {
-      method: 'GET',
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    return response.ok;
-  } catch (error) {
-    console.error('Connection test failed:', error);
-    return false;
-  }
-};

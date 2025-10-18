@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -119,9 +120,28 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ visible, onClose })
   };
 
   const requestPermissions = async () => {
+    // Na web, não precisamos solicitar permissões
+    if (Platform.OS === 'web') {
+      return true;
+    }
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar sua galeria de fotos.');
+      return false;
+    }
+    return true;
+  };
+
+  const requestCameraPermissions = async () => {
+    // Na web, não precisamos solicitar permissões de câmera
+    if (Platform.OS === 'web') {
+      return true;
+    }
+
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar sua câmera.');
       return false;
     }
     return true;
@@ -138,32 +158,27 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ visible, onClose })
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: Platform.OS === 'web' ? 0.9 : 0.8, // Maior qualidade na web
         base64: true,
+        exif: false, // Desabilitar EXIF para melhor compatibilidade
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        // Usar a URI da imagem para exibição e base64 para armazenamento
-        const imageData = {
-          uri: asset.uri,
-          base64: asset.base64,
-        };
+        // Usar a URI da imagem para exibição
         setFormData({ ...formData, avatar: asset.uri });
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
+      console.error('Erro ao selecionar imagem:', error);
+      Alert.alert('Erro', 'Não foi possível selecionar a imagem. Tente novamente.');
     } finally {
       setIsLoadingImage(false);
     }
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar sua câmera.');
-      return;
-    }
+    const hasPermission = await requestCameraPermissions();
+    if (!hasPermission) return;
 
     setIsLoadingImage(true);
     
@@ -171,35 +186,41 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ visible, onClose })
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: Platform.OS === 'web' ? 0.9 : 0.8, // Maior qualidade na web
         base64: true,
+        exif: false, // Desabilitar EXIF para melhor compatibilidade
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        // Usar a URI da imagem para exibição e base64 para armazenamento
-        const imageData = {
-          uri: asset.uri,
-          base64: asset.base64,
-        };
+        // Usar a URI da imagem para exibição
         setFormData({ ...formData, avatar: asset.uri });
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível tirar a foto.');
+      console.error('Erro ao tirar foto:', error);
+      Alert.alert('Erro', 'Não foi possível tirar a foto. Tente novamente.');
     } finally {
       setIsLoadingImage(false);
     }
   };
 
   const showImagePicker = () => {
+    const options = [
+      { text: 'Cancelar', style: 'cancel' as const },
+      { text: 'Galeria', onPress: pickImage },
+    ];
+
+    // Adicionar opção de câmera apenas se não for web ou se a câmera estiver disponível
+    if (Platform.OS !== 'web') {
+      options.splice(1, 0, { text: 'Câmera', onPress: takePhoto });
+    }
+
     Alert.alert(
       'Selecionar Foto',
-      'Escolha uma opção',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Câmera', onPress: takePhoto },
-        { text: 'Galeria', onPress: pickImage },
-      ]
+      Platform.OS === 'web' 
+        ? 'Escolha uma imagem da sua galeria' 
+        : 'Escolha uma opção',
+      options
     );
   };
 
@@ -248,6 +269,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ visible, onClose })
                   {isLoadingImage && (
                     <View style={styles.loadingOverlay}>
                       <Ionicons name="refresh" size={20} color="#ffffff" />
+                      <Text style={styles.loadingText}>Carregando...</Text>
                     </View>
                   )}
                 </View>
@@ -688,6 +710,13 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '500',
   },
   photoActions: {
     flexDirection: 'row',
